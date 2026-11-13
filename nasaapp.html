@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astro-Systems: ECLSS Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        deepspace: '#03050a', moonsurface: '#1a1a24',
+                        neonBlue: '#00f3ff', neonYellow: '#ffea00', neonGreen: '#00ff66', neonPurple: '#d500ff', neonRed: '#ff003c',
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                        arabic: ['Cairo', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: var(--deepspace); color: #e0e6ed; overflow: hidden; font-family: 'Space Mono', 'Cairo', monospace; margin: 0; padding: 0; user-select: none; }
+        
+        /* --- Space Particles Background --- */
+        #stars-container { position: fixed; inset: 0; z-index: -10; overflow: hidden; background: radial-gradient(ellipse at bottom, #0d131f 0%, #03050a 100%); }
+        .star { position: absolute; background: white; border-radius: 50%; animation: animStar linear infinite; box-shadow: 0 0 5px rgba(255, 255, 255, 0.8); }
+        .star-sm { width: 1px; height: 1px; animation-duration: 50s; }
+        .star-md { width: 2px; height: 2px; animation-duration: 100s; }
+        .star-lg { width: 3px; height: 3px; animation-duration: 150s; }
+        @keyframes animStar { from { transform: translateY(-100vh); } to { transform: translateY(100vh); } }
+
+        /* --- Floating Entities --- */
+        .float-entity { position: absolute; filter: drop-shadow(0 0 15px rgba(255,255,255,0.2)); z-index: 10; pointer-events: none; }
+        .astro-1 { font-size: 60px; top: 15%; left: 10%; animation: floatAstro 12s ease-in-out infinite; transform-origin: center; }
+        .astro-2 { font-size: 40px; bottom: 20%; right: 15%; animation: floatAstro 15s ease-in-out infinite reverse; }
+        .planet-1 { font-size: 100px; top: 10%; right: 5%; animation: floatPlanet 20s ease-in-out infinite; filter: drop-shadow(0 0 30px rgba(0, 243, 255, 0.4)); }
+        .moon-1 { font-size: 70px; bottom: 10%; left: 5%; animation: floatPlanet 18s ease-in-out infinite alternate; }
+        
+        @keyframes floatAstro { 0% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-40px) rotate(15deg); } 100% { transform: translateY(0) rotate(0deg); } }
+        @keyframes floatPlanet { 0% { transform: translateY(0) scale(1); } 50% { transform: translateY(-20px) scale(1.05); } 100% { transform: translateY(0) scale(1); } }
+
+        /* CRT Effects */
+        .crt-overlay { position: fixed; inset: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 6px 100%; z-index: 100; pointer-events: none; opacity: 0.5; }
+
+        /* --- 3D TECH PANELS --- */
+        .tech-panel {
+            background: linear-gradient(145deg, rgba(16, 24, 39, 0.85) 0%, rgba(3, 7, 18, 0.95) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 243, 255, 0.15); border-top: 2px solid rgba(0, 243, 255, 0.5); border-inline-start: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 8px;
+            box-shadow: 8px 12px 25px rgba(0, 0, 0, 0.8), inset 2px 2px 10px rgba(255, 255, 255, 0.03), inset -3px -3px 15px rgba(0, 0, 0, 0.6);
+            position: relative;
+        }
+
+        .panel-glow-border { border-inline-end: 4px solid #00f3ff; box-shadow: 8px 12px 25px rgba(0, 0, 0, 0.8), inset -10px 0 20px rgba(0, 243, 255, 0.05); }
+
+        /* --- 3D SEGMENTED BARS --- */
+        .segmented-bar { display: flex; gap: 3px; height: 12px; background: #010204; padding: 2px; border-radius: 4px; box-shadow: inset 0 3px 6px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.05); }
+        .segment { flex: 1; opacity: 0.15; border-radius: 2px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.5); transition: all 0.3s; }
+        .segment.active { opacity: 1; box-shadow: 0 0 8px currentColor, inset 0 2px 4px rgba(255,255,255,0.4); }
+
+        /* --- 3D TACTILE BUTTONS --- */
+        .cyber-btn {
+            background: linear-gradient(180deg, rgba(0, 243, 255, 0.1) 0%, rgba(0, 100, 150, 0.35) 100%);
+            border: 1px solid rgba(0, 243, 255, 0.5); border-bottom: 4px solid rgba(0, 150, 200, 0.8); border-radius: 6px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6), inset 0 2px 2px rgba(255, 255, 255, 0.1);
+            transition: all 0.1s ease; position: relative; overflow: hidden; outline: none; cursor: pointer;
+        }
+        .cyber-btn:hover:not(:disabled) { background: linear-gradient(180deg, rgba(0, 243, 255, 0.2) 0%, rgba(0, 150, 200, 0.5) 100%); border-color: #00f3ff; text-shadow: 0 0 8px #00f3ff; }
+        .cyber-btn:active:not(:disabled) { transform: translateY(3px); border-bottom-width: 1px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), inset 0 4px 8px rgba(0, 0, 0, 0.5); }
+        .cyber-btn:disabled { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }
+        
+        .btn-adv-special { background: linear-gradient(45deg, rgba(213,0,255,0.2), rgba(0,243,255,0.2)); border-color: #d500ff; animation: advPulse 2s infinite; }
+        @keyframes advPulse { 0% { box-shadow: 0 0 10px rgba(213,0,255,0.4); } 50% { box-shadow: 0 0 25px rgba(213,0,255,0.8); } 100% { box-shadow: 0 0 10px rgba(213,0,255,0.4); } }
+
+        .btn-override { background: linear-gradient(180deg, rgba(255, 234, 0, 0.15) 0%, rgba(180, 120, 0, 0.4) 100%); border-color: #ffea00; border-bottom-color: #b47800; }
+        .btn-override:hover:not(:disabled) { background: linear-gradient(180deg, rgba(255, 234, 0, 0.3) 0%, rgba(200, 140, 0, 0.6) 100%); border-color: #ffea00; text-shadow: 0 0 8px #ffea00; }
+
+        .hint-box { background: linear-gradient(90deg, rgba(255, 234, 0, 0.1), rgba(0,0,0,0.5)); border-inline-end: 3px solid var(--neonYellow); box-shadow: inset 0 0 20px rgba(255, 234, 0, 0.05), 0 5px 15px rgba(0,0,0,0.5); border-radius: 4px; }
+
+        /* Radar */
+        .radar-container { position: relative; width: 100px; height: 100px; border-radius: 50%; border: 2px solid rgba(0, 243, 255, 0.4); background: radial-gradient(circle, rgba(0,243,255,0.1) 0%, rgba(0,0,0,0.8) 100%); overflow: hidden; margin: 0 auto; box-shadow: 0 0 20px rgba(0, 243, 255, 0.15), inset 0 0 15px rgba(0,0,0,0.9); }
+        .radar-container::before { content: ''; position: absolute; inset: 0; background: conic-gradient(from 0deg, transparent 70%, rgba(0, 243, 255, 0.8) 100%); animation: spin 4s linear infinite; border-radius: 50%; }
+        .radar-grid { position: absolute; inset: 0; background-image: radial-gradient(rgba(0,243,255,0.3) 1px, transparent 1px); background-size: 20px 20px; border-radius: 50%; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* --- EXPANDED 3D FLIP CARD FOR TRADE-OFFS & COMPLEX SYSTEMS --- */
+        .sys-flip-card { perspective: 1000px; height: 320px; cursor: pointer; }
+        .sys-flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1); transform-style: preserve-3d; }
+        .sys-flip-card.flipped .sys-flip-inner { transform: rotateY(180deg); }
+        .sys-flip-front, .sys-flip-back {
+            position: absolute; inset: 0; backface-visibility: hidden;
+            border-radius: 8px; padding: 18px; display: flex; flex-direction: column;
+            box-shadow: inset 0 0 18px rgba(0,0,0,0.85);
+        }
+        .sys-flip-front {
+            background: linear-gradient(145deg, rgba(0, 243, 255, 0.14), rgba(3, 7, 18, 0.96));
+            border: 1px solid rgba(0, 243, 255, 0.5);
+            align-items: center; justify-content: center; text-align: center;
+        }
+        .sys-flip-front:hover { border-color: #00f3ff; box-shadow: 0 0 20px rgba(0, 243, 255, 0.3); }
+        .sys-flip-back {
+            background: linear-gradient(145deg, rgba(16, 24, 39, 0.98), rgba(5, 10, 20, 0.98));
+            border: 1px solid rgba(0, 255, 102, 0.55);
+            transform: rotateY(180deg);
+            overflow-y: auto;
+            text-align: start;
+            justify-content: space-between;
+        }
+
+        /* --- ADVENTURE MAP --- */
+        #map-screen { display: none; }
+        .lunar-surface { background: radial-gradient(circle at 30% 30%, #3a3a4a 0%, #1a1a24 60%, #050508 100%); position: relative; box-shadow: inset 0 0 50px rgba(0,0,0,0.9); }
+        .crater { position: absolute; border-radius: 50%; background: linear-gradient(135deg, rgba(0,0,0,0.6) 0%, rgba(255,255,255,0.05) 100%); box-shadow: inset 4px 4px 10px rgba(0,0,0,0.8), inset -2px -2px 5px rgba(255,255,255,0.1), 2px 2px 5px rgba(255,255,255,0.05); }
+        .map-node { position: absolute; width: 18px; height: 18px; background: #010204; border: 2px solid #505060; border-radius: 50%; transform: translate(-50%, -50%); transition: all 0.5s; z-index: 20; box-shadow: 0 4px 6px rgba(0,0,0,0.8); }
+        .map-node.active-node { border-color: #00f3ff; background: #00f3ff; box-shadow: 0 0 20px #00f3ff; animation: pulseNode 1.5s infinite; width: 22px; height: 22px; }
+        .map-node.cleared-node { border-color: #00ff66; background: rgba(0,255,102,0.3); }
+        @keyframes pulseNode { 0% { box-shadow: 0 0 10px #00f3ff; } 50% { box-shadow: 0 0 25px #00f3ff; } 100% { box-shadow: 0 0 10px #00f3ff; } }
+        
+        #rocket-pawn { position: absolute; width: 40px; height: 40px; z-index: 30; transform-origin: center center; transition: top 1.5s ease-in-out, left 1.5s ease-in-out, transform 0.5s ease; display: flex; align-items: center; justify-content: center; font-size: 24px; filter: drop-shadow(0 5px 10px rgba(0,0,0,0.5)); }
+        .rocket-fire { position: absolute; bottom: -12px; left: 50%; transform: translateX(-50%); width: 12px; height: 20px; background: linear-gradient(to bottom, #ffea00, #ff003c, transparent); border-radius: 50% 50% 20% 20%; animation: engineFire 0.1s infinite alternate; opacity: 0; }
+        .rocket-moving .rocket-fire { opacity: 1; }
+        @keyframes engineFire { 0% { height: 15px; transform: translateX(-50%) scale(1); } 100% { height: 25px; transform: translateX(-50%) scale(1.2); } }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #010204; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #00f3ff, #006496); border-radius: 3px; }
+        
+        .sys-flip-card { height: clamp(340px, 56vh, 520px); }
+        .sys-flip-card:not(.flipped) .sys-flip-front { animation: cardGlow 2.6s ease-in-out infinite; }
+        @keyframes cardGlow { 50% { box-shadow: 0 0 22px rgba(0,243,255,.45); } }
+        .res-down { animation: resDown .7s; } .res-up { animation: resUp .7s; }
+        @keyframes resDown { 30% { box-shadow: 0 0 16px #ff003c; transform: translateX(-3px); } 60% { transform: translateX(3px); } }
+        @keyframes resUp { 30% { box-shadow: 0 0 16px #00ff66; } }
+        .event-in { animation: eventIn .45s ease-out; }
+        @keyframes eventIn { from { opacity: 0; transform: translateY(10px); } }
+        @media (prefers-reduced-motion: reduce) { .star, .float-entity, .radar-container::before, .sys-flip-front, .event-in { animation: none !important; } }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen p-4 relative">
+
+    <div id="stars-container"></div>
+    <div class="crt-overlay"></div>
+
+    <!-- HEADER / SETTINGS -->
+    <div class="flex justify-between items-start z-[60] relative mb-4 shrink-0">
+        <div>
+            <div class="text-[12px] font-orbitron font-bold text-neonBlue/80 mb-1 drop-shadow-md">SYS_OP: ASTRO-SYSTEMS v4.5 (NASA_API_LINKED)</div>
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="text-[11px] font-bold text-neonRed/90 animate-pulse drop-shadow-md" id="sys-status">STATUS: STANDBY</div>
+                <span id="nasa-api-badge" class="px-2 py-0.5 bg-neonBlue/10 border border-neonBlue/50 text-neonBlue rounded text-[10px] font-mono">
+                    📡 NASA API: SYNCING...
+                </span>
+                <span id="reserve-badge" class="hidden px-2 py-0.5 bg-neonPurple/20 border border-neonPurple text-neonPurple rounded text-[10px] font-orbitron font-bold animate-pulse">
+                    🛡️ <span id="reserve-badge-txt">RESERVE BUFFER: ACTIVE</span>
+                </span>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <div class="relative text-start">
+                <button onclick="GameController.toggleSettings()" class="cyber-btn px-5 py-2 text-neonBlue font-orbitron font-bold text-xs flex items-center gap-2 tracking-wider">
+                    ⚙️ SETTINGS
+                </button>
+                <div id="settings-menu" class="hidden absolute end-0 mt-2 w-64 tech-panel p-5 z-50">
+                    <div class="mb-5">
+                        <label class="text-[11px] font-orbitron font-bold text-neonBlue mb-2 block">AUDIO VOLUME</label>
+                        <input type="range" min="0" max="1" step="0.1" value="0.5" id="vol-slider" onchange="AudioEngine.setVolume(this.value)" class="w-full accent-neonBlue">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-orbitron font-bold text-neonBlue mb-2 block">SYSTEM LANGUAGE</label>
+                        <button onclick="GameController.toggleLanguage()" class="w-full cyber-btn py-2 text-sm font-bold font-arabic mb-2">
+                            <span id="lang-btn-text">🌐 ENGLISH</span>
+                        </button>
+                    </div>
+                    <div id="menu-ingame-actions" class="mt-4 pt-4 border-t border-neonBlue/30 hidden">
+                        <button onclick="GameController.handleReportClick()" class="w-full cyber-btn py-2 text-sm font-bold font-arabic text-neonRed border-neonRed hover:bg-neonRed/20" style="border-color: #ff003c;">
+                            <span id="btn-surrender-text">🚪 القائمة الرئيسية / انسحاب</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOOT SCREEN -->
+    <div id="boot-screen" class="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md transition-opacity duration-700">
+        <div class="float-entity astro-1">👨‍🚀</div><div class="float-entity astro-2">🛰️</div><div class="float-entity planet-1">🪐</div><div class="float-entity moon-1">🌕</div>
+        <div class="tech-panel p-10 max-w-4xl w-full text-center border-t-4 border-neonBlue relative z-20 shadow-[0_20px_50px_rgba(0,0,0,0.9)]">
+            <h1 class="text-5xl md:text-7xl font-orbitron font-black text-white tracking-[0.2em] mb-4" style="text-shadow: 0 10px 20px rgba(0,243,255,0.4), 0 -2px 5px rgba(255,255,255,0.5);">ASTRO<span class="text-neonBlue">-SYS</span></h1>
+            <p class="text-neonBlue font-mono font-bold opacity-90 uppercase text-sm mb-3 tracking-widest drop-shadow-md" id="boot-subtitle">Initialize Orbital Simulator</p>
+            <div id="boot-nasa-status" class="inline-block mb-8 px-4 py-1.5 rounded bg-black/60 border border-neonBlue/30 text-[11px] font-mono text-gray-300">
+                🛰️ Connecting to NASA DONKI, OSDR & RadLab Datasets...
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <button onclick="GameController.boot('training')" class="cyber-btn p-5 border-s-4 border-neonGreen text-neonGreen text-start flex flex-col justify-center transition-transform hover:scale-105">
+                    <span class="font-orbitron font-black text-lg block mb-2 drop-shadow-md" id="btn-easy-title">TRAINING</span>
+                    <span class="font-mono text-xs text-white/70 block font-bold" id="btn-easy-desc">Balanced drain (0.9x-1.0x). Hints enabled.</span>
+                </button>
+                <button onclick="GameController.boot('realistic')" class="cyber-btn p-5 border-s-4 border-neonRed text-neonRed text-start flex flex-col justify-center transition-transform hover:scale-105">
+                    <span class="font-orbitron font-black text-lg block mb-2 drop-shadow-md" id="btn-hard-title">REALISTIC</span>
+                    <span class="font-mono text-xs text-white/70 block font-bold" id="btn-hard-desc">Strict drain (1.3x). No hints.</span>
+                </button>
+                <button onclick="GameController.bootAdventure()" class="cyber-btn btn-adv-special p-5 border-s-4 border-neonPurple text-neonPurple text-start flex flex-col justify-center transition-transform hover:scale-110">
+                    <span class="font-orbitron font-black text-lg block mb-2 drop-shadow-md uppercase" id="btn-adv-title">ADVENTURE</span>
+                    <span class="font-mono text-xs text-white/90 block font-bold" id="btn-adv-desc">30 Levels. Balanced scaling.</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADVENTURE MAP SCREEN -->
+    <div id="map-screen" class="absolute inset-0 z-40 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-start pt-16 transition-opacity duration-700">
+        <h2 class="text-4xl font-orbitron font-black text-neonPurple tracking-widest mb-1 drop-shadow-[0_0_10px_#d500ff]" id="map-title-txt">LUNAR ROUTE</h2>
+        <p class="text-[11px] font-mono text-neonBlue/80 mb-2">TERRAIN MODEL GROUNDED IN NASA MARS/MOON TREK & CSA LUNAR HABITAT DATA</p>
+        <p class="text-white/80 font-mono text-sm mb-4 font-bold uppercase tracking-wider"><span id="map-lvl-lbl">SECTOR</span>: <span id="map-level-display" class="text-neonBlue text-xl">1</span> / 30</p>
+        <div id="map-bonus-banner" class="hidden mb-4 px-4 py-1.5 bg-neonPurple/20 border border-neonPurple rounded text-xs font-arabic font-bold text-neonPurple">
+            🛡️ مكافأة الأداء نشطة: درع احتياطي سيمتص 50% من أول خسارة في هذا القطاع!
+        </div>
+        <div class="relative w-[90%] max-w-3xl h-[55vh] border-2 border-white/20 rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(0,0,0,0.8)] lunar-surface flex items-center justify-center">
+            <div class="crater" style="width: 150px; height: 150px; top: 10%; left: 15%;"></div><div class="crater" style="width: 80px; height: 80px; bottom: 20%; right: 10%;"></div><div class="crater" style="width: 200px; height: 200px; bottom: -10%; left: 30%; opacity: 0.5;"></div><div class="crater" style="width: 60px; height: 60px; top: 40%; right: 25%;"></div>
+            <canvas id="map-canvas" class="absolute inset-0 w-full h-full pointer-events-none opacity-60"></canvas>
+            <div id="map-nodes-container" class="absolute inset-0 w-full h-full pointer-events-none"></div>
+            <div id="rocket-pawn">🚀<div class="rocket-fire"></div></div>
+        </div>
+        <button id="btn-start-adv-level" onclick="GameController.startAdventureLevel()" class="cyber-btn btn-adv-special mt-6 px-12 py-4 text-white font-orbitron font-black tracking-widest text-lg shadow-[0_0_15px_#d500ff]">ENGAGE MISSION</button>
+    </div>
+
+    <!-- MAIN HUD -->
+    <div id="main-hud" class="flex-1 opacity-0 pointer-events-none transition-opacity duration-1000 z-10 flex flex-col md:flex-row gap-4 h-[82vh]">
+        
+        <!-- RIGHT PANEL IN RTL (First in DOM): Radar & Live NASA Telemetry -->
+        <div class="tech-panel w-full md:w-64 p-4 flex flex-col gap-3 hidden md:flex shrink-0 overflow-y-auto custom-scrollbar">
+            <div>
+                <div class="text-[11px] font-orbitron font-bold text-neonBlue border-b-2 border-neonBlue/30 pb-2 mb-3 drop-shadow-md">SYS_TELEMETRY</div>
+                <div class="radar-container"><div class="radar-grid"></div></div>
+            </div>
+            <div class="space-y-2.5">
+                <div class="bg-black/40 p-2.5 rounded-lg border border-white/5 shadow-inner">
+                    <div class="text-[10px] text-neonPurple font-orbitron font-bold mb-1">DRAIN MULTIPLIER</div>
+                    <div id="mult-indicator" class="text-sm font-orbitron font-black text-white">1.00x</div>
+                </div>
+                <div class="bg-black/40 p-2.5 rounded-lg border border-white/5 shadow-inner">
+                    <div class="text-[10px] text-neonGreen font-orbitron font-bold mb-1">HULL INTEGRITY</div>
+                    <div class="h-2 w-full bg-black rounded-full border border-neonGreen/40 overflow-hidden"><div id="hull-bar" class="h-full bg-neonGreen transition-all duration-700 shadow-[0_0_10px_#00ff66]" style="width:100%"></div></div>
+                </div>
+                <!-- LIVE NASA DONKI & RADLAB TELEMETRY -->
+                <div class="bg-black/60 p-2.5 rounded-lg border border-neonBlue/40 shadow-inner">
+                    <div class="text-[10px] text-neonBlue font-orbitron font-bold mb-1 flex justify-between">
+                        <span>📡 DONKI / RADLAB</span>
+                        <span id="donki-dot" class="text-neonYellow animate-pulse">● LIVE</span>
+                    </div>
+                    <div id="donki-live-text" class="text-[10px] font-mono text-gray-300 leading-relaxed">
+                        Syncing NASA Space Weather...
+                    </div>
+                </div>
+                <!-- LIVE NASA OSDR STUDY FEED -->
+                <div class="bg-black/60 p-2.5 rounded-lg border border-neonGreen/40 shadow-inner">
+                    <div class="text-[10px] text-neonGreen font-orbitron font-bold mb-1">🧬 NASA OSDR STUDY</div>
+                    <div id="osdr-live-text" class="text-[10px] font-mono text-gray-300 leading-relaxed">
+                        Querying OSDR Bio-Archive...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CENTER PANEL: Terminal -->
+        <div class="flex-1 flex flex-col gap-4 min-h-0">
+            <!-- Resources with Scientific Units -->
+            <div class="tech-panel p-4 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0">
+                <div class="text-center px-3 border-b md:border-b-0 md:border-s-2 border-white/10 pb-3 md:pb-0 w-full md:w-auto flex flex-row md:flex-col justify-between items-center md:items-center">
+                    <div class="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-1" id="ui-cycle-level">LEVEL / DAY</div>
+                    <div class="text-xl md:text-2xl font-orbitron font-black text-white drop-shadow-md flex items-baseline gap-2">
+                        <span id="level-display" class="text-neonPurple">L1</span>
+                        <span class="text-sm text-white/40">|</span>
+                        <span id="day-display" class="text-neonBlue">D1</span>
+                        <span class="text-xs text-white/40" id="max-day-display">/5</span>
+                    </div>
+                </div>
+                <div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3 w-full">
+                    <div class="flex flex-col bg-black/20 p-2 rounded border border-white/5 shadow-inner">
+                        <div class="flex justify-between items-center text-[9px] md:text-[10px] font-orbitron font-bold mb-1.5">
+                            <span class="text-neonYellow" id="res-pwr">⚡ PWR</span>
+                            <span id="val-power" class="text-white">100% (120 kW)</span>
+                        </div>
+                        <div class="segmented-bar text-neonYellow" id="bar-power"></div>
+                    </div>
+                    <div class="flex flex-col bg-black/20 p-2 rounded border border-white/5 shadow-inner">
+                        <div class="flex justify-between items-center text-[9px] md:text-[10px] font-orbitron font-bold mb-1.5">
+                            <span class="text-neonBlue" id="res-o2">💨 O2</span>
+                            <span id="val-life" class="text-white">100% (101.3 kPa)</span>
+                        </div>
+                        <div class="segmented-bar text-neonBlue" id="bar-life"></div>
+                    </div>
+                    <div class="flex flex-col bg-black/20 p-2 rounded border border-white/5 shadow-inner">
+                        <div class="flex justify-between items-center text-[9px] md:text-[10px] font-orbitron font-bold mb-1.5">
+                            <span class="text-neonPurple" id="res-shld">🛡️ SHLD</span>
+                            <span id="val-shield" class="text-white">100% (295 K)</span>
+                        </div>
+                        <div class="segmented-bar text-neonPurple" id="bar-shield"></div>
+                    </div>
+                    <div class="flex flex-col bg-black/20 p-2 rounded border border-white/5 shadow-inner">
+                        <div class="flex justify-between items-center text-[9px] md:text-[10px] font-orbitron font-bold mb-1.5">
+                            <span class="text-neonGreen" id="res-hyd">🌱 BIO</span>
+                            <span id="val-food" class="text-white">100% (500 kg)</span>
+                        </div>
+                        <div class="segmented-bar text-neonGreen" id="bar-food"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Event Terminal -->
+            <div class="tech-panel panel-glow-border flex-1 p-5 flex flex-col relative min-h-0">
+                <div class="flex justify-between items-center mb-2 shrink-0">
+                    <div class="text-[11px] font-bold text-neonBlue font-orbitron drop-shadow-md">TRANSMISSION INBOUND</div>
+                    <button id="btn-emergency" onclick="GameController.useEmergencyOverride()" class="cyber-btn btn-override px-3 py-1 text-neonYellow font-orbitron font-bold text-[10px] md:text-xs flex items-center gap-1.5 tracking-wider">
+                        ⚡ <span id="emergency-btn-txt">EMERGENCY OVERRIDE (1)</span>
+                    </button>
+                </div>
+                
+                <!-- Scrollable Text Area -->
+                <div class="flex-1 overflow-y-auto pr-2 pb-2 mb-2 custom-scrollbar">
+                    <h2 class="text-2xl md:text-3xl font-orbitron font-black text-white mb-4 uppercase drop-shadow-lg flex items-center gap-3">
+                        <span class="w-2 h-8 bg-neonBlue rounded-full shadow-[0_0_10px_#00f3ff]"></span>
+                        [ <span id="event-title">---</span> ]
+                    </h2>
+                    <p id="event-desc" class="font-mono font-bold text-sm md:text-base text-gray-200 mb-4 whitespace-pre-line leading-relaxed drop-shadow-md"></p>
+
+                    <!-- Hint -->
+                    <div id="event-hint-container" class="p-4 hint-box hidden">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-3 h-3 bg-neonYellow rounded-sm animate-pulse shadow-[0_0_8px_#ffea00]"></span>
+                            <span class="text-[11px] font-bold text-neonYellow font-orbitron drop-shadow-md" id="ui-hint-title">SYS_ADVISORY // ANALYSIS</span>
+                        </div>
+                        <p id="event-hint" class="font-mono font-bold text-xs md:text-sm text-gray-300 leading-relaxed drop-shadow-sm"></p>
+                    </div>
+                </div>
+
+                <!-- Fixed Choices Area -->
+                <div class="flex flex-col gap-3 shrink-0 pt-2 border-t border-white/10">
+                    <button onclick="GameController.makeChoice(0)" class="cyber-btn p-3 text-start group">
+                        <div class="text-[10px] font-bold text-neonBlue font-orbitron mb-1 opacity-80">OPT_01 //</div>
+                        <h3 id="choice-1-text" class="font-orbitron font-black text-sm md:text-base text-white mb-2">---</h3>
+                        <div class="flex flex-col md:flex-row gap-2 md:gap-5 text-[10px] font-bold bg-black/60 p-2 rounded shadow-inner border border-white/5">
+                            <span class="text-neonGreen"><span id="c1-pro-lbl">ADV:</span> <span id="choice-1-pro" class="text-gray-300"></span></span>
+                            <span class="text-neonRed"><span id="c1-con-lbl">DIS:</span> <span id="choice-1-con" class="text-gray-300"></span></span>
+                        </div>
+                    </button>
+                    <button onclick="GameController.makeChoice(1)" class="cyber-btn p-3 text-start group">
+                        <div class="text-[10px] font-bold text-neonBlue font-orbitron mb-1 opacity-80">OPT_02 //</div>
+                        <h3 id="choice-2-text" class="font-orbitron font-black text-sm md:text-base text-white mb-2">---</h3>
+                        <div class="flex flex-col md:flex-row gap-2 md:gap-5 text-[10px] font-bold bg-black/60 p-2 rounded shadow-inner border border-white/5">
+                            <span class="text-neonGreen"><span id="c2-pro-lbl">ADV:</span> <span id="choice-2-pro" class="text-gray-300"></span></span>
+                            <span class="text-neonRed"><span id="c2-con-lbl">DIS:</span> <span id="choice-2-con" class="text-gray-300"></span></span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LEFT PANEL IN RTL (Last in DOM): Spacious NASA Trade-offs & Complex Systems Flip Card -->
+        <div class="tech-panel w-full md:w-96 p-5 flex flex-col gap-4 hidden md:flex shrink-0">
+            <div class="bg-black/25 p-4 rounded-lg border border-white/10 shadow-inner shrink-0">
+                <div class="flex justify-between items-center border-b-2 border-neonBlue/30 pb-2.5 mb-3">
+                    <span class="text-xs font-orbitron font-bold text-neonBlue drop-shadow-md" id="nasa-panel-title">NASA_&_CSA_BRIEF</span>
+                    <span class="text-[10px] text-neonYellow font-mono animate-pulse" id="flip-hint-lbl">CLICK TO FLIP</span>
+                </div>
+                
+                <!-- Expanded 3D Flip Card -->
+                <div id="nasa-flip-card" class="sys-flip-card" onclick="AudioEngine.click(); this.classList.toggle('flipped')">
+                    <div class="sys-flip-inner">
+                        <!-- Front of Card -->
+                        <div class="sys-flip-front">
+                            <div class="text-4xl mb-3 drop-shadow-[0_0_12px_#00f3ff]">🛰️</div>
+                            <div class="font-orbitron font-black text-sm text-neonBlue tracking-wider mb-2" id="card-front-title">ECLSS SYSTEMS BRIEF</div>
+                            <div class="font-arabic font-bold text-xs text-white/85 leading-relaxed px-2" id="card-front-sub">اضغط لقلب البطاقة وتحليل الترابط الهندسي والمقايضات</div>
+                        </div>
+                        <!-- Back of Card -->
+                        <div class="sys-flip-back custom-scrollbar space-y-4">
+                            <div>
+                                <div class="text-xs font-bold text-neonBlue font-arabic mb-1.5" id="lbl-nasa">🛰️ بيانات ناسا و CSA:</div>
+                                <p id="card-nasa-txt" class="text-xs md:text-[13px] font-arabic text-gray-100 leading-loose">---</p>
+                                <p id="card-nasa-src" class="text-[10px] font-mono text-neonBlue/70 mt-1"></p>
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-neonGreen font-arabic mb-1.5" id="lbl-complex">🔗 الأنظمة المعقدة (Complex Systems):</div>
+                                <p id="card-complex-txt" class="text-xs md:text-[13px] font-arabic text-gray-100 leading-loose">---</p>
+                            </div>
+                            <div class="border-t border-white/15 pt-3">
+                                <div class="text-xs font-bold text-neonYellow font-arabic mb-1.5" id="lbl-tradeoff">⚖️ مبدأ المقايضة (Trade-off):</div>
+                                <p id="card-tradeoff-txt" class="text-xs md:text-[13px] font-arabic text-gray-100 leading-loose">---</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROFESSIONAL POST-CHALLENGE QUIZ MODAL -->
+    <div id="quiz-modal" class="absolute inset-0 bg-black/95 z-[75] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity backdrop-blur-md">
+        <div class="tech-panel p-8 md:p-10 max-w-3xl w-full text-start border-t-4 border-neonBlue shadow-[0_25px_60px_rgba(0,243,255,0.25)] max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-white/10 pb-4 mb-6">
+                <div>
+                    <div class="text-[11px] font-orbitron font-bold text-neonBlue tracking-widest mb-1">ECLSS VERIFICATION PROTOCOL</div>
+                    <h2 id="quiz-title" class="text-2xl md:text-3xl font-orbitron font-black text-white drop-shadow-lg">تقييم القائد الهندسي</h2>
+                </div>
+                <div class="px-3 py-1.5 rounded bg-neonBlue/10 border border-neonBlue/40 font-orbitron text-xs text-neonBlue font-bold" id="quiz-score-badge">
+                    SCORE: 0 / 3
+                </div>
+            </div>
+            <p id="quiz-subtitle" class="text-xs md:text-sm font-arabic text-gray-300 mb-5 leading-relaxed">أجب على الأسئلة التالية للتأكد من فهمك لمبادئ المقايضة وترابط الأنظمة في المحطة:</p>
+            <div class="flex gap-2 mb-6" id="quiz-progress-bars">
+                <div class="h-1.5 flex-1 rounded-full bg-neonBlue transition-all" id="q-step-0"></div>
+                <div class="h-1.5 flex-1 rounded-full bg-white/15 transition-all" id="q-step-1"></div>
+                <div class="h-1.5 flex-1 rounded-full bg-white/15 transition-all" id="q-step-2"></div>
+            </div>
+            <div class="bg-black/60 p-6 rounded-xl border border-white/10 shadow-inner mb-5">
+                <div class="text-xs font-orbitron font-bold text-neonYellow mb-2" id="quiz-progress">QUESTION 1 / 3</div>
+                <h3 id="quiz-question" class="text-base md:text-xl font-arabic font-bold text-white mb-6 leading-relaxed">---</h3>
+                <div id="quiz-options" class="flex flex-col gap-3.5"></div>
+            </div>
+            <div id="quiz-feedback-box" class="hidden p-5 rounded-xl border transition-all mb-4">
+                <div id="quiz-feedback-header" class="font-arabic font-black text-base mb-2"></div>
+                <p id="quiz-explanation-text" class="font-arabic text-xs md:text-sm text-gray-200 leading-loose"></p>
+                <div class="mt-4 flex justify-end">
+                    <button id="quiz-next-btn" onclick="QuizEngine.next()" class="cyber-btn px-6 py-2 text-xs md:text-sm font-orbitron font-bold text-neonBlue">
+                        NEXT ➔
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MISSION REPORT MODAL -->
+    <div id="report-modal" class="absolute inset-0 bg-black/95 z-[70] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity backdrop-blur-md">
+        <div class="tech-panel p-10 max-w-3xl w-full max-h-[92vh] overflow-y-auto text-center border-t-4 shadow-[0_20px_50px_rgba(0,0,0,0.9)]" id="report-border">
+            <h2 id="modal-title" class="text-5xl font-orbitron font-black mb-3 uppercase tracking-widest mt-4 text-white drop-shadow-lg">END</h2>
+            <p id="modal-desc" class="text-base font-mono font-bold text-gray-300 drop-shadow-sm"></p>
+            
+            <div class="bg-black/50 p-4 rounded mt-4 mb-8 border border-white/10 shadow-inner">
+                <p id="modal-tip" class="text-sm md:text-base font-arabic font-bold text-neonYellow leading-relaxed"></p>
+            </div>
+
+            <div class="text-start mb-6">
+                <div class="text-[11px] font-orbitron font-bold text-neonBlue border-b border-neonBlue/30 pb-1.5 mb-2" id="dlog-title">DECISION LOG</div>
+                <p id="dlog-summary" class="text-[11px] font-arabic font-bold text-neonYellow mb-2 leading-relaxed"></p>
+                <div id="dlog-body" class="max-h-52 overflow-y-auto custom-scrollbar text-[11px]"></div>
+                <details class="mt-3 text-[10px] font-mono text-white/60" open><summary class="cursor-pointer text-neonBlue font-bold" id="src-title">NASA & CSA OFFICIAL RESOURCES USED</summary><ul id="dlog-src" class="mt-1 space-y-0.5"></ul></details>
+            </div>
+            <div class="flex flex-col md:flex-row gap-4 justify-center">
+                <button id="modal-btn-retry" onclick="GameController.retryLevel()" class="cyber-btn px-8 py-4 text-neonYellow font-orbitron font-black text-base tracking-widest hidden border-neonYellow border-b-4 hover:shadow-[0_0_15px_#ffea00]">RETRY LEVEL</button>
+                <button id="modal-btn" onclick="GameController.handleReportClick()" class="cyber-btn px-8 py-4 text-white font-orbitron font-black text-base tracking-widest">MAIN MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Background & Audio ---
+        function generateStars() {
+            const container = document.getElementById('stars-container');
+            const sizes = ['sm', 'md', 'lg'];
+            for(let i=0; i<150; i++) {
+                const star = document.createElement('div');
+                star.className = `star star-${sizes[Math.floor(Math.random() * sizes.length)]}`;
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 50}s`;
+                container.appendChild(star);
+            }
+        }
+        generateStars();
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx;
+        const AudioEngine = {
+            masterVol: 0.5,
+            init: () => { if(!audioCtx) audioCtx = new AudioContext(); if(audioCtx.state === 'suspended') audioCtx.resume(); },
+            setVolume: (v) => { AudioEngine.masterVol = parseFloat(v); },
+            play: (f, type, dur, vol) => {
+                if(!audioCtx || AudioEngine.masterVol === 0) return;
+                const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                o.type = type; o.frequency.setValueAtTime(f, audioCtx.currentTime);
+                g.gain.setValueAtTime(vol * AudioEngine.masterVol, audioCtx.currentTime); 
+                g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+                o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime + dur);
+            },
+            click: () => { AudioEngine.init(); AudioEngine.play(800, 'square', 0.1, 0.1); },
+            override: () => { AudioEngine.init(); [500, 750, 1000].forEach((f,i) => setTimeout(() => AudioEngine.play(f, 'triangle', 0.25, 0.15), i*100)); },
+            rocket: () => { AudioEngine.init(); AudioEngine.play(100, 'sawtooth', 1.5, 0.2); },
+            win: () => { AudioEngine.init(); [400,600,800].forEach((f,i) => setTimeout(() => AudioEngine.play(f, 'sine', 0.3, 0.1), i*150)); },
+            lose: () => { AudioEngine.init(); [300,200,100].forEach((f,i) => setTimeout(() => AudioEngine.play(f, 'sawtooth', 0.4, 0.2), i*300)); }
+        };
+
+        // --- Dictionary & Post-Game Tips ---
+        const i18n = {
+            ar: {
+                toggleBtn: "🌐 ENGLISH", bootSubtitle: "تهيئة محاكي الأنظمة المدارية (مربوط ببيانات ناسا الحية)", btnSurrender: "🚪 القائمة الرئيسية / انسحاب",
+                btnEasy: "تدريب", btnEasyDesc: "استنزاف متوازن (0.9x - 1.0x) وتلميحات.",
+                btnHard: "واقعي", btnHardDesc: "استنزاف صارم (1.3x) بلا تلميحات.", 
+                btnAdv: "مغامرة", btnAdvDesc: "٣٠ مستوى بتوازن علمي وفلتر أمان.",
+                uiCycleLvl: "المستوى | اليوم", resPwr: "⚡ طاقة", resO2: "💨 أكسجين", resShld: "🛡️ دروع", resHyd: "🌱 زراعة",
+                adv: "ميزة:", dis: "خطر:", hintTitle: "تحليل النظام // تلميح", exportTxt: "سجل البيانات",
+                emergencyReady: "تجاوز طوارئ (1)", emergencyUsed: "تجاوز الطوارئ مستنفد",
+                reserveActive: "درع احتياطي: نشط", mapBonusTxt: "🛡️ مكافأة الأداء نشطة: درع احتياطي سيمتص 50% من أول خسارة في هذا القطاع!",
+                flipHint: "اضغط للقلب", cardFrontTitle: "تحليل ناسا و CSA الهندسي", cardFrontSub: "اضغط لقلب البطاقة وفهم ترابط الأنظمة والمقايضات",
+                lblComplex: "🔗 الأنظمة المعقدة (Complex Systems):", lblTradeoff: "⚖️ مبدأ المقايضة (Trade-off):",
+                quizTitle: "تقييم القائد الهندسي", quizSub: "أجب على الأسئلة التالية للتأكد من فهمك لمبادئ المقايضة وترابط الأنظمة في المحطة:",
+                quizNext: "السؤال التالي ➔", quizFinish: "عرض النتيجة النهائية ➔",
+                quizFailTip: "💡 نجوت من الأيام العشرة، لكنك أخفقت في تقييم الفهم الهندسي! اقلب بطاقة ناسا في كل يوم لفهم سبب وتأثير كل قرار.",
+                winTitle: "نجاح المهمة", winDesc: "تم الحفاظ على استقرار المحطة واجتياز التقييم الهندسي بنجاح.",
+                loseTitle: "فشل كارثي", loseDesc: "انهيار النظام الحرج: ",
+                mapTitle: "مسار سطح القمر", mapLvl: "المحطة", btnMenu: "القائمة الرئيسية", btnRetry: "إعادة المستوى",
+                levelPrefix: "م ", dayPrefix: "يوم ",
+                engage: "ابدأ المهمة", nasaLbl: "🛰️ بيانات ناسا و CSA:", srcLbl: "المصدر", dlogTitle: "سجل القرارات: أين خسرت نقاطك؟", dlogWorst: "أغلى قرار", dlogTop: "أكبر نزيف", srcTitle: "مصادر ناسا و CSA المستخدمة في المحاكاة",
+                tips: {
+                    win: "💡 أداؤك ممتاز! لقد أثبتّ فهمك الحقيقي لترابط أنظمة دعم الحياة (ECLSS) والمقايضات الهندسية.",
+                    power: "💡 تقرير: نفدت الطاقة بالكامل. نصيحة: المولدات لا تتحمل التشغيل المستمر للأنظمة الثقيلة، ضحِّ ببعض الدروع أو المزارع أحياناً لإنقاذ الكهرباء.",
+                    life: "💡 تقرير: اختنق الطاقم بسبب نقص الأكسجين. نصيحة: حياة الطاقم لا تقدر بثمن، تجنب أي قرارات تستنزف دعم الحياة بشكل متتالي.",
+                    shield: "💡 تقرير: تدمر الغلاف الخارجي. نصيحة: الدروع هي خط الدفاع الأول ضد النيازك والإشعاع (RadLab)، حافظ عليها دائماً فوق 30٪.",
+                    food: "💡 تقرير: انهيار الأنظمة الحيوية والجوع. نصيحة: المزارع المائية (CSA Food Production) تتطلب مياهاً وكهرباء منتظمة، لا تضحي بها لفترات طويلة."
+                }
+            },
+            en: {
+                toggleBtn: "🌐 العربية", bootSubtitle: "Initialize Orbital Simulator (Live NASA API Linked)", btnSurrender: "🚪 MAIN MENU / SURRENDER",
+                btnEasy: "TRAINING", btnEasyDesc: "Balanced drain (0.9x - 1.0x). Hints enabled.",
+                btnHard: "REALISTIC", btnHardDesc: "Strict drain (1.3x). No hints.", 
+                btnAdv: "ADVENTURE", btnAdvDesc: "30 Levels. Balanced scaling & safety.",
+                uiCycleLvl: "LEVEL | DAY", resPwr: "⚡ PWR", resO2: "💨 O2", resShld: "🛡️ SHLD", resHyd: "🌱 BIO",
+                adv: "ADV:", dis: "RISK:", hintTitle: "SYS_ADVISORY // HINT", exportTxt: "TELEMETRY LOG",
+                emergencyReady: "EMERGENCY OVERRIDE (1)", emergencyUsed: "OVERRIDE DEPLETED",
+                reserveActive: "RESERVE BUFFER: ACTIVE", mapBonusTxt: "🛡️ PERFORMANCE BONUS: Reserve buffer will absorb 50% of first drain in this sector!",
+                flipHint: "CLICK TO FLIP", cardFrontTitle: "NASA & CSA SYSTEMS BRIEF", cardFrontSub: "Click to flip and analyze Complex Systems & Trade-offs",
+                lblComplex: "🔗 Complex Systems:", lblTradeoff: "⚖️ Engineering Trade-off:",
+                quizTitle: "COMMANDER ASSESSMENT", quizSub: "Answer these questions to verify your understanding of ECLSS trade-offs and system interdependencies:",
+                quizNext: "NEXT QUESTION ➔", quizFinish: "VIEW FINAL REPORT ➔",
+                quizFailTip: "💡 You survived 10 days, but failed the engineering assessment! Flip the NASA card each day to learn why systems affect each other.",
+                winTitle: "MISSION ACCOMPLISHED", winDesc: "Station stability maintained and engineering assessment passed.",
+                loseTitle: "CATASTROPHIC FAILURE", loseDesc: "Critical system collapse: ",
+                mapTitle: "LUNAR ROUTE", mapLvl: "SECTOR", btnMenu: "MAIN MENU", btnRetry: "RETRY LEVEL",
+                levelPrefix: "L", dayPrefix: "D",
+                engage: "ENGAGE MISSION", nasaLbl: "🛰️ NASA & CSA DATA:", srcLbl: "SOURCE", dlogTitle: "DECISION LOG: WHERE YOU LOST POINTS", dlogWorst: "Costliest decision", dlogTop: "Biggest drain", srcTitle: "NASA & CSA OFFICIAL RESOURCES USED",
+                tips: {
+                    win: "💡 Great job! You mastered NASA ECLSS system interdependencies and engineering trade-offs.",
+                    power: "💡 Report: Power depleted. Tip: Generators have limits. Sacrifice auxiliary systems like bio-farms temporarily to save power.",
+                    life: "💡 Report: Oxygen exhausted. Tip: Life support is non-negotiable. Avoid sequential decisions that heavily drain O2.",
+                    shield: "💡 Report: Hull breached. Tip: Shields are your first line of defense against space radiation (RadLab). Keep them above 30%.",
+                    food: "💡 Report: Bio-crops perished. Tip: Space crops (CSA Food Production) need steady water and power to survive."
+                }
+            }
+        };
+
+        // 🚨 SCENARIO POOL WITH NASA COMPLEX SYSTEMS & TRADE-OFFS 🚨
+        const AllScenarios = [{"title": {"en": "Solar Flare", "ar": "توهج شمسي"}, "desc": {"en": "A C-Class solar flare is impacting the hull.", "ar": "توهج شمسي يضرب الغلاف الخارجي. الحرارة ترتفع."}, "hint": {"en": "Water cools but harms crops.", "ar": "الماء المخصص للزراعة يبرد المحطة كعازل، لكنه يعطش النباتات."}, "complexSys": {"en": "NASA's Thermal Control System (TCS) uses water loops to absorb heat, directly linking hull protection to the Water Recovery & Hydroponics loop.", "ar": "نظام التحكم الحراري في ناسا (TCS) يعتمد على دوائر المياه لامتصاص الحرارة، مما يربط حماية الهيكل مباشرة بمخزون المياه والزراعة."}, "tradeoff": {"en": "Diverting water saves grid power for life support, while electromagnetic shielding protects crops at a high electrical cost.", "ar": "تحويل المياه للتبريد يحفظ طاقة الشبكة، بينما الدرع الكهرومغناطيسي يحمي المحاصيل مقابل استهلاك كهربائي حاد."}, "choices": [{"text": {"en": "Water Coolant", "ar": "استخدام مياه الزراعة للتبريد"}, "pro": {"en": "+15% Shld | Saves Power", "ar": "+15% درع | يوفر الكهرباء"}, "con": {"en": "-20% Bio", "ar": "-20% زراعة"}, "effects": {"shield": 15, "food": -20, "power": 0, "life": 0}}, {"text": {"en": "Energy Shield", "ar": "تفعيل دروع الطاقة القصوى"}, "pro": {"en": "+20% Shld | Saves Crops", "ar": "+20% درع | يحمي المحاصيل"}, "con": {"en": "-25% Pwr", "ar": "-25% كهرباء"}, "effects": {"shield": 20, "power": -25, "food": 0, "life": 0}}]}, {"title": {"en": "Dust Storm", "ar": "عاصفة غبار"}, "desc": {"en": "Dust is covering exterior solar arrays.", "ar": "غبار كوني كثيف يغطي ألواح الطاقة الشمسية. التوليد ينخفض."}, "hint": {"en": "Rovers clean panels but take damage.", "ar": "الروبوتات تستطيع التنظيف ولكن العاصفة ستتلف هياكلها ومعدات الدرع."}, "complexSys": {"en": "Photovoltaic arrays power the entire ECLSS. Dust accumulation drops voltage, forcing a choice between exterior mechanical risk or interior rationing.", "ar": "الألواح الشمسية تغذي كامل أنظمة دعم الحياة. تراكم الغبار يخفض الجهد، مما يربط بين سلامة المعدات الخارجية وكفاءة التهوية والزراعة بالداخل."}, "tradeoff": {"en": "Deploying rovers restores generation at the cost of physical hull wear, whereas rationing power starves LED grow-lights and CO2 scrubbers.", "ar": "إرسال الروبوتات يعيد التوليد مقابل تآكل الدروع، بينما تقنين الطاقة يضعف إضاءة الزراعة وأجهزة تنقية الهواء."}, "choices": [{"text": {"en": "Send Rovers", "ar": "إرسال الروبوتات للتنظيف"}, "pro": {"en": "+25% Pwr", "ar": "+25% كهرباء"}, "con": {"en": "-18% Shld | -5% O2", "ar": "-18% دروع | -5% أكسجين"}, "effects": {"power": 25, "shield": -18, "food": 0, "life": -5}}, {"text": {"en": "Ration Power", "ar": "تقنين الطاقة من الداخل"}, "pro": {"en": "+15% Pwr | Saves Hull", "ar": "+15% كهرباء | يحمي الدروع"}, "con": {"en": "-15% Bio | -10% O2", "ar": "-15% زراعة | -10% أكسجين"}, "effects": {"power": 15, "food": -15, "life": -10, "shield": 0}}]}, {"title": {"en": "O2 Leak Detected", "ar": "تسرب أكسجين"}, "desc": {"en": "Micro-meteorite punctured Sector 4.", "ar": "نيزك دقيق أحدث ثقباً في القطاع السكني. الأكسجين يتسرب بسرعة."}, "hint": {"en": "Seal it manually (exhausting) or auto-foam.", "ar": "الإصلاح اليدوي مرهق جداً للطاقم، والرغوة الآلية سريعة ولكن مكلفة للطاقة."}, "complexSys": {"en": "Cabin pressure (101.3 kPa) depends on hull integrity. A breach forces the Oxygen Generation System (OGS) to overwork while crew metabolic rates spike.", "ar": "ضغط المقصورة (101.3 kPa) يعتمد على سلامة الهيكل. أي ثقب يجبر مولد الأكسجين على العمل بأقصى طاقة ويرفع استهلاك الطاقم للغذاء والهواء."}, "tradeoff": {"en": "Manual EVA patching preserves electrical reserves but exhausts crew/bio-rations; automated sealing is instant but drains power and shield capacitors.", "ar": "الإصلاح اليدوي يوفر الكهرباء لكنه يستنزف مخزون الطاقم والغذاء، بينما السد الآلي يستهلك طاقة المكثفات والدروع."}, "choices": [{"text": {"en": "Manual Repair", "ar": "إرسال فريق إصلاح يدوي"}, "pro": {"en": "+20% O2 | Saves Power", "ar": "+20% أكسجين | يوفر الطاقة"}, "con": {"en": "-20% Bio", "ar": "-20% حيوية"}, "effects": {"life": 20, "food": -20, "power": 0, "shield": 0}}, {"text": {"en": "Auto-Foam", "ar": "إطلاق رغوة السد الآلية"}, "pro": {"en": "+25% O2 | Fast Fix", "ar": "+25% أكسجين | إصلاح سريع"}, "con": {"en": "-18% Pwr | -10% Shld", "ar": "-18% كهرباء | -10% درع"}, "effects": {"life": 25, "power": -18, "shield": -10, "food": 0}}]}, {"title": {"en": "Bio-Crop Blight", "ar": "عدوى زراعية"}, "desc": {"en": "A fungus is attacking hydroponics.", "ar": "فطر فضائي سام ينتشر في المزارع المائية. الغذاء مهدد."}, "hint": {"en": "UV lights kill fungus but drain power.", "ar": "الأشعة فوق البنفسجية تقضي عليه، وتفريغ الهواء لخنقه يضيع الأكسجين."}, "complexSys": {"en": "In closed-loop space habitats (like NASA's Veggie & CSA Lunar Food models), plants share cabin air. Pathogens in hydroponics threaten both food supply and atmospheric balance.", "ar": "في البيئات الفضائية المغلقة (مثل تجارب ناسا وCSA)، تتشارك النباتات الهواء مع الطاقم؛ لذا فإن أي عدوى فطرية تهدد الغذاء وتوازن الغلاف الجوي معاً."}, "tradeoff": {"en": "High-intensity UV sterilization requires heavy grid wattage, whereas depressurizing the bay vents valuable cabin oxygen into space.", "ar": "التعقيم بالأشعة فوق البنفسجية يستهلك طاقة كبيرة، بينما تفريغ ضغط الغرفة لخنق الفطر يهدر الأكسجين الثمين."}, "choices": [{"text": {"en": "UV Purge", "ar": "تطهير مركّز بالأشعة"}, "pro": {"en": "+25% Bio", "ar": "+25% زراعة"}, "con": {"en": "-22% Pwr", "ar": "-22% طاقة"}, "effects": {"food": 25, "power": -22, "life": 0, "shield": 0}}, {"text": {"en": "Vent Sector", "ar": "تفريغ هواء المزرعة مؤقتاً"}, "pro": {"en": "+18% Bio | Saves Power", "ar": "+18% زراعة | يوفر الطاقة"}, "con": {"en": "-22% O2", "ar": "-22% هواء"}, "effects": {"food": 18, "life": -22, "power": 0, "shield": 0}}]}, {"title": {"en": "Asteroid Impact", "ar": "اصطدام نيزكي"}, "desc": {"en": "Asteroid fragment heavily damaged the shields.", "ar": "شظية نيزكية حطمت جزءاً من دروع المحطة الواقية الأساسية."}, "hint": {"en": "Divert power to shields or use organic sealant.", "ar": "المواد العضوية من المزرعة يمكن تحويلها لمادة لحام، أو استهلاك طاقة كثيفة للدرع المغناطيسي."}, "complexSys": {"en": "Hypervelocity debris impacts transfer kinetic energy into structural stress, requiring either active magnetic deflection or composite hull patching.", "ar": "اصطدامات الحطام فائقة السرعة تحول الطاقة الحركية إلى إجهاد هيكلي، مما يتطلب إما تشتيتاً مغناطيسياً نشطاً أو ترقيعاً مركباً للغلاف."}, "tradeoff": {"en": "Boosting magnetic deflectors heavily taxes batteries, while synthesizing bio-polymers consumes agricultural biomass.", "ar": "تعزيز الدروع المغناطيسية يرهق البطاريات، بينما تصنيع بوليمرات اللحام الحيوية يستهلك الكتلة الزراعية."}, "choices": [{"text": {"en": "Power Divert", "ar": "تحويل مسار الطاقة للدرع"}, "pro": {"en": "+28% Shld", "ar": "+28% درع"}, "con": {"en": "-25% Pwr", "ar": "-25% كهرباء"}, "effects": {"shield": 28, "power": -25, "food": 0, "life": 0}}, {"text": {"en": "Organic Seal", "ar": "استخدام ختم عضوي حيوي"}, "pro": {"en": "+20% Shld | Saves Power", "ar": "+20% درع | يحافظ على المولدات"}, "con": {"en": "-20% Bio | -5% O2", "ar": "-20% زراعة | -5% هواء"}, "effects": {"shield": 20, "food": -20, "power": 0, "life": -5}}]}, {"title": {"en": "Water Glitch", "ar": "عطل تدوير المياه"}, "desc": {"en": "Water purification system offline.", "ar": "نظام تنقية وإعادة تدوير المياه توقف بشكل مفاجئ."}, "hint": {"en": "Emergency power overrides it, or manual bypass.", "ar": "تفعيل الطوارئ يصدم المولدات، والإصلاح اليدوي يستهلك هواء الممرات."}, "complexSys": {"en": "NASA's Water Recovery System (WRS) recycles ~98% of station water for both hydroponics and O2 electrolysis. A pump failure halts both loops.", "ar": "نظام استعادة المياه في ناسا (WRS) يعيد تدوير 98% من المياه للزراعة وتوليد الأكسجين؛ تعطل المضخة يهدد النظامين معاً."}, "tradeoff": {"en": "High-voltage pump override drains the power bus, while manual plumbing bypass requires depressurizing and re-pressurizing airlocks (O2 loss).", "ar": "التجاوز الكهربائي للمضخة يستنزف الطاقة، بينما الإصلاح اليدوي يتطلب تفريغ وإعادة ضغط غرف العزل مما يهدر الأكسجين."}, "choices": [{"text": {"en": "Power Override", "ar": "تجاوز كهربي طارئ"}, "pro": {"en": "+22% Bio", "ar": "+22% زراعة"}, "con": {"en": "-22% Pwr | -5% Shld", "ar": "-22% كهرباء | -5% درع"}, "effects": {"food": 22, "power": -22, "shield": -5, "life": 0}}, {"text": {"en": "Manual Bypass", "ar": "إصلاح الأنابيب يدوياً"}, "pro": {"en": "+20% Bio | Saves Power", "ar": "+20% زراعة | يوفر الطاقة"}, "con": {"en": "-20% O2", "ar": "-20% هواء"}, "effects": {"food": 20, "life": -20, "power": 0, "shield": 0}}]}, {"title": {"en": "Cosmic Radiation", "ar": "عاصفة إشعاعية"}, "desc": {"en": "High radiation spike detected in living quarters (RadLab Alert).", "ar": "موجة إشعاع كوني خطيرة تخترق مناطق معيشة الطاقم (تنبيه RadLab)."}, "hint": {"en": "Boost shields or evacuate to bio-dome.", "ar": "دعم الدروع يحمي الجميع بتكلفة طاقة، الإخلاء لقسم الزراعة يفسد بعض المحاصيل."}, "complexSys": {"en": "NASA's RadLab ISS dosimetry shows Galactic Cosmic Rays penetrate thin hulls. Water-rich modules (like bio-domes) act as natural radiation shelters.", "ar": "قياسات الإشعاع في RadLab التابع لناسا تثبت أن الأشعة الكونية تخترق الأغلفة الرقيقة؛ وتعمل الوحدات الغنية بالمياه (مثل الصوبات الزراعية) كدروع طبيعية."}, "tradeoff": {"en": "Active magnetic shielding consumes peak power, while sheltering the crew inside the bio-dome damages delicate crops.", "ar": "التدريع المغناطيسي النشط يستهلك طاقة قصوى، بينما احتمَاء الطاقم داخل الصوبة الزراعية يتلف المحاصيل الحساسة."}, "choices": [{"text": {"en": "Max Shields", "ar": "تفعيل الدروع المغناطيسية القصوى"}, "pro": {"en": "+18% O2 | +15% Shld", "ar": "+18% أكسجين | +15% درع"}, "con": {"en": "-25% Pwr", "ar": "-25% طاقة"}, "effects": {"life": 18, "power": -25, "shield": 15, "food": 0}}, {"text": {"en": "Evacuate Area", "ar": "إخلاء الطاقم للقسم الزراعي"}, "pro": {"en": "+15% O2 | Saves Power", "ar": "+15% هواء | يوفر الكهرباء"}, "con": {"en": "-20% Bio | -10% Shld", "ar": "-20% زراعة | -10% درع"}, "effects": {"life": 15, "food": -20, "power": 0, "shield": -10}}]}, {"title": {"en": "AI Malfunction", "ar": "تمرد الذكاء الاصطناعي"}, "desc": {"en": "Core AI is locking doors and disabling scrubbers.", "ar": "نظام الذكاء الاصطناعي بدأ بالتصرف بعدائية وإغلاق الفلاتر."}, "hint": {"en": "Rebooting loses power, manual override risks crew.", "ar": "إعادة التشغيل تفقدنا الكثير من الطاقة وتطفئ الدروع، التدخل البشري يخنق الطاقم."}, "complexSys": {"en": "Avionics software regulates CO2 scrubbers (CDRA) and power distribution. A software lockup freezes automated life-support regulation.", "ar": "برمجيات الطيران تتحكم في منقيات ثاني أكسيد الكربون وتوزيع الطاقة؛ أي خلل برمجي يوقف التنظيم الآلي لدعم الحياة."}, "tradeoff": {"en": "Hard-rebooting avionics drops shields and surges power on restart, while manual mechanical override delays scrubber reactivation (O2 drop).", "ar": "إعادة التشغيل الكاملة تستهلك طاقة وتخفض الدروع، بينما التدخل اليدوي يؤخر تشغيل فلاتر الهواء."}, "choices": [{"text": {"en": "System Reboot", "ar": "إعادة تشغيل النظام بالكامل"}, "pro": {"en": "+15% O2", "ar": "+15% أكسجين"}, "con": {"en": "-22% Pwr | -12% Shld", "ar": "-22% كهرباء | -12% درع"}, "effects": {"life": 15, "power": -22, "shield": -12, "food": 0}}, {"text": {"en": "Manual Hack", "ar": "اختراق الكود يدوياً"}, "pro": {"en": "+10% Pwr", "ar": "+10% طاقة"}, "con": {"en": "-22% O2 | -5% Bio", "ar": "-22% هواء | -5% زراعة"}, "effects": {"power": 10, "life": -22, "food": -5, "shield": 0}}]}, {"title": {"en": "Cooling Failure", "ar": "انهيار نظام التبريد"}, "desc": {"en": "Reactors are overheating dangerously.", "ar": "حرارة المفاعلات ترتفع لمستويات حرجة تنذر بالانفجار."}, "hint": {"en": "Overclock coolers (drains power) or vent heat (loses O2).", "ar": "زيادة طاقة التبريد تستهلك كهرباء، وتفريغ الحرارة للخارج يطرد الأكسجين معه."}, "complexSys": {"en": "In the vacuum of space, heat cannot dissipate by convection; stations rely on ammonia radiator loops and heat exchangers to prevent thermal runaway.", "ar": "في فراغ الفضاء لا تتبدد الحرارة بالحمل الحراري؛ بل تعتمد المحطة على مشعات الأمونيا والمبادلات الحرارية لمنع الانصهار."}, "tradeoff": {"en": "Overclocking radiator pumps demands heavy electrical load, whereas emergency thermal venting expels cabin gas alongside heat.", "ar": "زيادة سرعة مضخات التبريد تستهلك كهرباء عالية، بينما التنفيس الحراري الطارئ يطرد غازات المقصورة مع الحرارة."}, "choices": [{"text": {"en": "Overclock Coolers", "ar": "كسر سرعة مراوح التبريد"}, "pro": {"en": "+15% Shld", "ar": "+15% درع"}, "con": {"en": "-24% Pwr", "ar": "-24% كهرباء"}, "effects": {"shield": 15, "power": -24, "life": 0, "food": 0}}, {"text": {"en": "Vent to Space", "ar": "تفريغ الحرارة للفضاء"}, "pro": {"en": "+12% Shld | Saves Power", "ar": "+12% درع | يوفر الطاقة"}, "con": {"en": "-22% O2", "ar": "-22% هواء"}, "effects": {"shield": 12, "life": -22, "power": 0, "food": 0}}]}, {"title": {"en": "Debris Field", "ar": "حقل حطام"}, "desc": {"en": "Station entering a dense field of space junk.", "ar": "المحطة تدخل في مسار حقل كثيف من حطام الأقمار الصناعية."}, "hint": {"en": "Evasive thrusters cost power, bracing impacts damages hull.", "ar": "المناورة للهروب تتطلب طاقة هائلة، وتحمل الضربات سيدمر الدروع والزراعة الخارجية."}, "complexSys": {"en": "Orbital Debris Avoidance Maneuvers (DAM) alter station altitude using thrusters, directly linking orbital mechanics to power and structural safety.", "ar": "مناورات تفادي الحطام المداري (DAM) تغير ارتفاع المحطة، مما يربط ميكانيكا المدارات مباشرة بالطاقة وسلامة الهيكل."}, "tradeoff": {"en": "Firing attitude thrusters drains power capacitors, while enduring impacts degrades Whipple shields and exterior bio-radiators.", "ar": "تشغيل محركات المناورة يستنزف الطاقة، بينما تحمل الصدمات يستهلك الدروع الواقية والمشعات الخارجية."}, "choices": [{"text": {"en": "Evasive Maneuver", "ar": "مناورة هروب بالمحركات"}, "pro": {"en": "+15% Shld", "ar": "+15% درع"}, "con": {"en": "-22% Pwr | -5% O2", "ar": "-22% كهرباء | -5% هواء"}, "effects": {"shield": 15, "power": -22, "life": -5, "food": 0}}, {"text": {"en": "Brace for Impact", "ar": "الاستعداد لتلقي الضربات"}, "pro": {"en": "+10% Pwr", "ar": "+10% كهرباء"}, "con": {"en": "-20% Shld | -10% Bio", "ar": "-20% دروع | -10% زراعة"}, "effects": {"power": 10, "shield": -20, "food": -10, "life": 0}}]}, {"title": {"en": "Solar Eclipse", "ar": "كسوف كوني"}, "desc": {"en": "A massive gas giant blocks all solar light.", "ar": "كوكب غازي ضخم يحجب ضوء الشمس تماماً عن المحطة لفترة."}, "hint": {"en": "Batteries will drain. Hibernate systems or use Bio-Fuel.", "ar": "إطفاء الأنظمة يضر الحياة والزراعة، استخدام الوقود الحيوي يستهلك الطعام."}, "complexSys": {"en": "During orbital eclipse, stations rely solely on battery storage. Energy deficits immediately cascade into life-support and thermal drops.", "ar": "أثناء الكسوف المداري تعتمد المحطة كلياً على البطاريات؛ وأي عجز في الطاقة ينعكس فوراً على التدفئة ودعم الحياة."}, "tradeoff": {"en": "Converting biomass into fuel cells sustains electricity at the cost of food reserves, while hibernation saves food but lowers O2 and thermal shielding.", "ar": "تحويل الكتلة الحيوية لوقود يحافظ على الكهرباء مقابل الغذاء، بينما السبات يحفظ الغذاء ويخفض الأكسجين والحرارة."}, "choices": [{"text": {"en": "Burn Bio-Fuel", "ar": "حرق الوقود الحيوي"}, "pro": {"en": "+22% Pwr", "ar": "+22% كهرباء"}, "con": {"en": "-22% Bio | -5% O2", "ar": "-22% زراعة | -5% هواء"}, "effects": {"power": 22, "food": -22, "shield": 0, "life": -5}}, {"text": {"en": "System Hibernate", "ar": "سبات الأنظمة المؤقت"}, "pro": {"en": "Saves Bio", "ar": "يحفظ موارد الزراعة"}, "con": {"en": "-20% O2 | -10% Shld", "ar": "-20% أكسجين | -10% درع"}, "effects": {"power": -5, "life": -20, "shield": -10, "food": 0}}]}, {"title": {"en": "Unknown Signal", "ar": "إشارة مجهولة"}, "desc": {"en": "An alien SOS signal overrides comms.", "ar": "إشارة استغاثة مجهولة المصدر تخترق أنظمة الاتصال وتشوشها."}, "hint": {"en": "Decoding takes extreme computing power. Ignoring hurts crew morale.", "ar": "محاولة فك التشفير تتطلب طاقة قصوى للكمبيوتر، وتجاهلها يصيب الطاقم بالذعر (نقص الأكسجين)."}, "complexSys": {"en": "High-gain telemetry processing and crew psychological stress directly affect station power consumption and metabolic O2 intake.", "ar": "معالجة الإشارات عالية الكسب والضغط النفسي للطاقم يؤثران بشكل مباشر على استهلاك الطاقة ومعدل استهلاك الأكسجين."}, "tradeoff": {"en": "Allocating CPU arrays to decode drains power, while ignoring the anomaly induces crew stress and elevates oxygen consumption.", "ar": "توجيه المعالجات لفك التشفير يستهلك الكهرباء، بينما تجاهل الإشارة يرفع توتر الطاقم واستهلاكهم للأكسجين."}, "choices": [{"text": {"en": "Decode Signal", "ar": "توجيه الطاقة لفك التشفير"}, "pro": {"en": "+15% O2", "ar": "+15% أكسجين"}, "con": {"en": "-22% Pwr | -5% Shld", "ar": "-22% طاقة | -5% درع"}, "effects": {"life": 15, "power": -22, "shield": -5, "food": 0}}, {"text": {"en": "Block & Ignore", "ar": "حظر الإشارة وتجاهلها"}, "pro": {"en": "+10% Pwr", "ar": "+10% طاقة"}, "con": {"en": "-18% O2 | -8% Bio", "ar": "-18% أكسجين | -8% زراعة"}, "effects": {"power": 10, "life": -18, "food": -8, "shield": 0}}]}, {"title": {"en": "Hull Breach", "ar": "تمزق الغلاف"}, "desc": {"en": "A structural failure in Sector 2 is venting atmosphere.", "ar": "ضعف هيكلي أدى لتمزق في الغلاف الخارجي للقطاع الثاني."}, "hint": {"en": "Magnetic seals use power. Sacrificing the sector ruins bio-domes.", "ar": "الختم المغناطيسي يستهلك كهرباء، وعزل وإغلاق القطاع سيدمر المزارع الموجودة فيه."}, "complexSys": {"en": "Modular station architecture allows isolating compromised pressure vessels to protect the remaining habitable volume.", "ar": "التصميم المعياري للمحطة يسمح بعزل القطاعات المتضررة لحماية باقي الحجم المضغوط القابل للحياة."}, "tradeoff": {"en": "Electromagnetic containment preserves the bio-module at high energy cost, while bulk-head isolation sacrifices crops and trapped air.", "ar": "الاحتواء الكهرومغناطيسي ينقذ وحدة الزراعة بتكلفة طاقة عالية، بينما العزل الكامل يضحي بالمحاصيل والهواء المحبوس."}, "choices": [{"text": {"en": "Magnetic Seal", "ar": "تفعيل الختم المغناطيسي"}, "pro": {"en": "+18% Shld", "ar": "+18% دروع"}, "con": {"en": "-24% Pwr", "ar": "-24% كهرباء"}, "effects": {"shield": 18, "power": -24, "food": 0, "life": 0}}, {"text": {"en": "Quarantine Sector", "ar": "عزل وإغلاق القطاع كلياً"}, "pro": {"en": "+10% Pwr", "ar": "+10% كهرباء"}, "con": {"en": "-22% Bio | -12% O2", "ar": "-22% زراعة | -12% هواء"}, "effects": {"power": 10, "food": -22, "life": -12, "shield": 0}}]}, {"title": {"en": "Toxic Spores", "ar": "أبواغ سامة"}, "desc": {"en": "Strange spores are breeding in the ventilation.", "ar": "جزيئات وأبواغ سامة تتكاثر بسرعة داخل فلاتر التهوية."}, "hint": {"en": "Superheat vents (power) or flush with water (food).", "ar": "حرقها حرارياً يسحب طاقة، وغسلها بالمياه يقلل مخزون الزراعة."}, "complexSys": {"en": "Closed-circuit air circulation (HEPA & Trace Contaminant Control) links air purity directly to water and thermal systems.", "ar": "دورة الهواء المغلقة وفلاتر تنقية الملوثات تربط نقاء الهواء مباشرة بأنظمة المياه والحرارة."}, "tradeoff": {"en": "Thermal incineration of filters consumes electricity, whereas aqueous chemical flushing reduces water available for hydroponics.", "ar": "الحرق الحراري للفلاتر يستهلك الكهرباء، بينما الغسيل المائي يقلل المياه المتاحة للزراعة."}, "choices": [{"text": {"en": "Superheat Vents", "ar": "الحرق الحراري للفلاتر"}, "pro": {"en": "+20% O2", "ar": "+20% أكسجين"}, "con": {"en": "-22% Pwr | -5% Bio", "ar": "-22% كهرباء | -5% زراعة"}, "effects": {"life": 20, "power": -22, "shield": 0, "food": -5}}, {"text": {"en": "Chemical Flush", "ar": "غسيل كيميائي مائي"}, "pro": {"en": "+18% O2 | Saves Power", "ar": "+18% أكسجين | يوفر الطاقة"}, "con": {"en": "-20% Bio", "ar": "-20% زراعة"}, "effects": {"life": 18, "food": -20, "power": 0, "shield": 0}}]}, {"title": {"en": "Gravity Glitch", "ar": "خلل الجاذبية"}, "desc": {"en": "Artificial gravity is malfunctioning violently.", "ar": "محرك الجاذبية الاصطناعية يتصرف بعنف مسبباً فوضى."}, "hint": {"en": "Stabilize it with power, or turn it off (damages life/food).", "ar": "تثبيته برمجياً يستهلك طاقة، وإطفاؤه يعني طفو المعدات وتلف الطاقم والمزارع."}, "complexSys": {"en": "NASA OSDR studies show microgravity alters fluid behavior, bone density, and root nutrient delivery in hydroponics.", "ar": "تُظهر أبحاث OSDR في ناسا أن انعدام الجاذبية يغير سلوك السوائل وكثافة العظام وتوصيل المغذيات للجذور في الزراعة."}, "tradeoff": {"en": "Stabilizing the drive demands continuous wattage, while shutting it down causes fluid dispersion in bio-trays and crew disorientation.", "ar": "تثبيت المحرك يتطلب طاقة مستمرة، بينما إطفاؤه يسبب تشتت السوائل في أحواض الزراعة وإجهاد الطاقم."}, "choices": [{"text": {"en": "Power Stabilize", "ar": "تثبيت المحرك بالطاقة"}, "pro": {"en": "+15% Shld", "ar": "+15% درع"}, "con": {"en": "-24% Pwr", "ar": "-24% طاقة"}, "effects": {"shield": 15, "power": -24, "life": 0, "food": 0}}, {"text": {"en": "Zero-G Mode", "ar": "إطفاء الجاذبية كلياً"}, "pro": {"en": "+12% Pwr", "ar": "+12% طاقة"}, "con": {"en": "-16% O2 | -16% Bio", "ar": "-16% أكسجين | -16% زراعة"}, "effects": {"power": 12, "life": -16, "food": -16, "shield": 0}}]}];
+
+        // --- OFFICIAL NASA & PARTNER RESOURCES (DONKI, OSDR, RadLab, Mars Trek, CSA) ---
+        const NASA_SRC = {
+            donki: ['NASA Space Weather Database (DONKI API)', 'https://api.nasa.gov/'],
+            osdr: ['NASA Open Science Data Repository (OSDR)', 'https://osdr.nasa.gov/'],
+            radlab: ['NASA RadLab (ISS Radiation Dosimetry Database)', 'https://osdr.nasa.gov/bio/radlab/'],
+            trek: ['NASA Mars Trek Terrain & Elevation Portal', 'https://trek.nasa.gov/mars/'],
+            csa_food: ['CSA: Food Production on the Moon & Remote Areas', 'https://www.asc-csa.gc.ca/eng/educators/resources/food-production/'],
+            csa_stem: ['CSA: Space Resources for STEM & Youth', 'https://www.asc-csa.gc.ca/eng/youth-educators/'],
+            iss: ['NASA International Space Station (ECLSS)', 'https://www.nasa.gov/international-space-station/'],
+            deb: ['NASA Orbital Debris Program Office', 'https://orbitaldebris.jsc.nasa.gov/'],
+            dart: ['NASA Planetary Defense: DART', 'https://science.nasa.gov/mission/dart/'],
+            dsn: ['NASA Deep Space Network', 'https://deepspace.jpl.nasa.gov/']
+        };
+
+        const NASA = [
+            {"s": "donki", "f": {"en": "NASA's DONKI database tracks real-time solar flares (A, B, C, M, X classes) and CMEs that drive radiation risk for astronauts.", "ar": "تتتبع قاعدة بيانات DONKI من ناسا التوهجات الشمسية الحية (فئات A, B, C, M, X) والانبعاثات الإكليلية لحماية رواد الفضاء."}, "qs": [{"q": {"en": "Which NASA database provides real-time solar flare notifications?", "ar": "أي قاعدة بيانات من ناسا توفر إشعارات التوهجات الشمسية الحية؟"}, "o": {"en": ["DONKI", "Mars Trek", "Deep Space Network"], "ar": ["DONKI", "Mars Trek", "شبكة الفضاء العميق"]}}]},
+            {"s": "trek", "f": {"en": "NASA's Mars Trek portal compiles real elevation and terrain data from Curiosity and Perseverance to model harsh planetary dust and surface conditions.", "ar": "تجمع بوابة Mars Trek من ناسا بيانات الارتفاع والتضاريس الحقيقية لمحاكاة ظروف السطح والعواصف الغبارية."}, "qs": [{"q": {"en": "What does NASA's Mars Trek portal provide?", "ar": "ماذا توفر بوابة Mars Trek التابعة لناسا؟"}, "o": {"en": ["Real Mars surface imagery, elevation, and terrain data", "Live ISS heart-rate telemetry", "Solar flare X-ray classifications"], "ar": ["صور وتضاريس وارتفاعات حقيقية لسطح المريخ", "نبضات قلب رواد المحطة", "تصنيفات أشعة إكس للتوهجات الشمسية"]}}]},
+            {"s": "iss", "f": {"en": "The ISS cabin is kept near sea-level pressure, about 101.3 kPa (14.7 psi), with a mix of nitrogen and oxygen.", "ar": "تحافظ المحطة على ضغط قريب من مستوى سطح البحر، نحو 101.3 كيلوباسكال (14.7 psi)، بمزيج من النيتروجين والأكسجين."}, "qs": [{"q": {"en": "What cabin pressure does the ISS maintain?", "ar": "ما ضغط المقصورة الذي تحافظ عليه المحطة الدولية؟"}, "o": {"en": ["About sea-level pressure (101.3 kPa)", "Near vacuum", "Double sea-level pressure"], "ar": ["قريب من ضغط سطح البحر (101.3 kPa)", "قريب من الفراغ", "ضعف ضغط سطح البحر"]}}]},
+            {"s": "csa_food", "f": {"en": "The Canadian Space Agency (CSA) food production toolkit outlines how closed-loop lunar greenhouses support astronaut nutrition and remote Earth communities.", "ar": "توضح حزمة وكالة الفضاء الكندية (CSA) لإنتاج الغذاء على القمر كيف تدعم الصوبات المغلقة تغذية الرواد والمناطق النائية على الأرض."}, "qs": [{"q": {"en": "How does the CSA space food toolkit benefit Earth?", "ar": "كيف تفيد أبحاث CSA لإنتاج الغذاء في الفضاء سكان الأرض؟"}, "o": {"en": ["Improves food production in remote and harsh areas", "Creates artificial gravity on Earth", "Blocks solar flares"], "ar": ["تحسّن إنتاج الغذاء في المناطق النائية والقاسية", "تولّد جاذبية اصطناعية على الأرض", "تحجب التوهجات الشمسية"]}}]},
+            {"s": "dart", "f": {"en": "In 2022 NASA's DART spacecraft hit the asteroid Dimorphos and changed its orbit, the first test of deflecting an asteroid.", "ar": "في 2022 اصطدمت مركبة ناسا DART بالكويكب ديمورفوس وغيّرت مداره، في أول اختبار لتحويل مسار كويكب."}, "qs": [{"q": {"en": "What did NASA's DART mission demonstrate?", "ar": "ماذا أثبتت مهمة DART من ناسا؟"}, "o": {"en": ["An impact can change an asteroid's orbit", "Lasers can vaporize asteroids", "Asteroids always miss Earth"], "ar": ["الاصطدام قد يغيّر مدار كويكب", "الليزر يبخّر الكويكبات", "الكويكبات لا تصل إلى الأرض أبدًا"]}}]},
+            {"s": "iss", "f": {"en": "NASA's ISS water system now recovers about 98% of crew water, using urine distillation and a brine processor.", "ar": "نظام المياه في المحطة يستعيد الآن نحو 98% من مياه الطاقم عبر تقطير البول ومعالج المحلول الملحي."}, "qs": [{"q": {"en": "What share of water does the ISS recover?", "ar": "ما نسبة المياه التي تستعيدها المحطة؟"}, "o": {"en": ["About 98%", "About 50%", "About 75%"], "ar": ["نحو 98%", "نحو 50%", "نحو 75%"]}}]},
+            {"s": "radlab", "f": {"en": "NASA's RadLab database compiles real radiation dosimetry measurements aboard the ISS (~0.5–1.0 mSv/day) to model shielding and astronaut health risks.", "ar": "تجمع قاعدة بيانات RadLab من ناسا قياسات الجرعات الإشعاعية الحقيقية على متن المحطة الدولية (~0.5–1.0 mSv يومياً) لنمذجة الدروع ومخاطر الصحة."}, "qs": [{"q": {"en": "Where are RadLab radiation dose measurements recorded?", "ar": "أين تُسجّل قياسات الجرعات الإشعاعية في قاعدة RadLab؟"}, "o": {"en": ["Aboard the International Space Station (ISS)", "Inside Earth's deep oceans", "On Venus's surface"], "ar": ["على متن محطة الفضاء الدولية (ISS)", "في أعماق محيطات الأرض", "على سطح كوكب الزهرة"]}}]},
+            {"s": "osdr", "f": {"en": "NASA's Open Science Data Repository (OSDR) archives spaceflight biology studies on how microgravity and radiation affect immune response, sleep, and muscle mass.", "ar": "يؤرشف مستودع العلوم المفتوحة (OSDR) التابع لناسا دراسات بيولوجيا الفضاء حول تأثير الجاذبية الصغرى والإشعاع على المناعة والنوم والعضلات."}, "qs": [{"q": {"en": "What type of research does NASA OSDR archive?", "ar": "ما نوع الأبحاث التي يؤرشفها مستودع NASA OSDR؟"}, "o": {"en": ["Space biology and astronaut health studies", "Deep-sea submarine blueprints", "Commercial airline schedules"], "ar": ["دراسات بيولوجيا الفضاء وصحة رواد الفضاء", "مخططات الغواصات", "جداول الطيران التجاري"]}}]},
+            {"s": "iss", "f": {"en": "With no air to carry heat away, the ISS pumps ammonia through external radiators that shed heat as infrared radiation.", "ar": "لعدم وجود هواء ينقل الحرارة، تضخ المحطة الأمونيا في مشعّات خارجية تطرد الحرارة على هيئة أشعة تحت حمراء."}, "qs": [{"q": {"en": "How does the ISS shed excess heat?", "ar": "كيف تتخلص المحطة من الحرارة الزائدة؟"}, "o": {"en": ["Ammonia loops and external radiators", "Opening vents to space", "Fans blowing outside"], "ar": ["دوائر أمونيا ومشعّات خارجية", "فتح فتحات إلى الفضاء", "مراوح تنفخ للخارج"]}}]},
+            {"s": "deb", "f": {"en": "NASA's Orbital Debris Program Office tracks fragments so fast that a paint flake once pitted a Space Shuttle window on STS-7.", "ar": "يتتبع مكتب الحطام المداري التابع لناسا قطعًا سريعة لدرجة أن رقاقة طلاء أحدثت حفرة في نافذة شاتل في مهمة STS-7."}, "qs": [{"q": {"en": "Why can a tiny paint flake damage a spacecraft?", "ar": "لماذا قد تُتلف رقاقة طلاء صغيرة مركبة فضائية؟"}, "o": {"en": ["It moves at orbital speed", "It is radioactive", "It is magnetic"], "ar": ["لأنها تتحرك بسرعة مدارية", "لأنها مشعة", "لأنها مغناطيسية"]}}]},
+            {"s": "iss", "f": {"en": "The ISS circles Earth about every 90 minutes, so the crew sees 16 sunrises and sunsets a day and batteries carry the station through each dark pass.", "ar": "تدور المحطة حول الأرض كل 90 دقيقة تقريبًا، فيرى الطاقم 16 شروقًا وغروبًا يوميًا وتغذّيها البطاريات في كل مرور مظلم."}, "qs": [{"q": {"en": "How many sunrises does the ISS crew see each day?", "ar": "كم شروقًا يراه طاقم المحطة يوميًا؟"}, "o": {"en": ["About 16", "4", "1"], "ar": ["نحو 16", "4", "1"]}}]},
+            {"s": "dsn", "f": {"en": "NASA's Deep Space Network uses three sites about 120 degrees apart, in California, Spain and Australia, so one always sees a spacecraft as Earth turns.", "ar": "تعتمد شبكة الفضاء العميق لناسا على ثلاثة مواقع متباعدة نحو 120 درجة في كاليفورنيا وإسبانيا وأستراليا، ليظل أحدها يرى المركبة أثناء دوران الأرض."}, "qs": [{"q": {"en": "Why does the Deep Space Network use three sites?", "ar": "لماذا تستخدم شبكة الفضاء العميق ثلاثة مواقع؟"}, "o": {"en": ["One always faces the spacecraft as Earth rotates", "To triple the signal power", "To avoid solar flares"], "ar": ["لأن أحدها يواجه المركبة دائمًا مع دوران الأرض", "لمضاعفة قوة الإشارة ثلاث مرات", "لتفادي التوهجات الشمسية"]}}]},
+            {"s": "iss", "f": {"en": "ISS modules use Whipple shields: a thin outer layer shatters fast particles before they reach the main hull.", "ar": "تستخدم وحدات المحطة دروع ويبل: طبقة خارجية رقيقة تفتّت الجسيمات السريعة قبل وصولها إلى الهيكل الرئيسي."}, "qs": [{"q": {"en": "What does a Whipple shield do?", "ar": "ماذا يفعل درع ويبل؟"}, "o": {"en": ["Breaks up incoming particles", "Generates power", "Cools the hull"], "ar": ["يفتّت الجسيمات القادمة", "يولّد الطاقة", "يبرّد الهيكل"]}}]},
+            {"s": "csa_stem", "f": {"en": "CSA's Space Resources for STEM and Youth Organizations engage students in understanding closed-loop ecosystems and astronaut survival.", "ar": "تُشرك موارد وكالة الفضاء الكندية (CSA) للشباب والمنظمات التعليمية الطلاب في فهم الأنظمة البيئية المغلقة وبقاء رواد الفضاء."}, "qs": [{"q": {"en": "Who are the CSA STEM resources designed for?", "ar": "لمن صُممت موارد STEM من وكالة الفضاء الكندية CSA؟"}, "o": {"en": ["Youth, educators, museums, and science clubs", "Only rocket engine manufacturers", "Deep sea divers"], "ar": ["الشباب والمعلمين والمتاحف والأندية العلمية", "مصنعي محركات الصواريخ فقط", "غواصي الأعماق"]}}]},
+            {"s": "osdr", "f": {"en": "NASA OSDR plant biology datasets show that microgravity alters water capillarity and root nutrient transport in orbital greenhouses.", "ar": "تُظهر بيانات بيولوجيا النبات في NASA OSDR أن انعدام الجاذبية يغيّر الخاصية الشعرية للماء ونقل المغذيات للجذور في الصوبات المدارية."}, "qs": [{"q": {"en": "How does microgravity affect plants in OSDR studies?", "ar": "كيف تؤثر الجاذبية الصغرى على النباتات في دراسات OSDR؟"}, "o": {"en": ["Alters fluid capillarity and root nutrient delivery", "Turns leaves into metal", "Stops photosynthesis completely"], "ar": ["تغيّر الخاصية الشعرية للسوائل وتوصيل المغذيات للجذور", "تحول الأوراق إلى معدن", "توقف البناء الضوئي تماماً"]}}]}
+        ];
+        AllScenarios.forEach((sc, i) => { sc.nasa = NASA[i % NASA.length]; });
+
+        // --- LIVE NASA OPEN APIs INTEGRATION (DONKI + OSDR) ---
+        const NASALiveEngine = {
+            apiKey: 'DEMO_KEY', // Replace with your free key from https://api.nasa.gov/ for higher rate limits
+            flareInfo: null,
+            osdrStudy: null,
+
+            init: async () => {
+                await Promise.allSettled([
+                    NASALiveEngine.fetchDONKI(),
+                    NASALiveEngine.fetchOSDR()
+                ]);
+            },
+
+            fetchDONKI: async () => {
+                const badge = document.getElementById('nasa-api-badge');
+                const bootStatus = document.getElementById('boot-nasa-status');
+                const liveText = document.getElementById('donki-live-text');
+                try {
+                    const end = new Date().toISOString().split('T')[0];
+                    const start = new Date(Date.now() - 45 * 86400000).toISOString().split('T')[0];
+                    const res = await fetch(`https://api.nasa.gov/DONKI/FLR?startDate=${start}&endDate=${end}&api_key=${NASALiveEngine.apiKey}`);
+                    const data = await res.json();
+
+                    if (Array.isArray(data) && data.length > 0) {
+                        const latest = data[data.length - 1];
+                        const fClass = latest.classType || 'C1.0';
+                        const fDate = (latest.beginTime || '').split('T')[0];
+                        NASALiveEngine.flareInfo = { fClass, fDate };
+
+                        if (badge) {
+                            badge.innerText = `📡 NASA DONKI LIVE: FLARE ${fClass} (${fDate})`;
+                            badge.className = 'px-2 py-0.5 bg-neonGreen/15 border border-neonGreen text-neonGreen rounded text-[10px] font-mono';
+                        }
+                        if (bootStatus) {
+                            bootStatus.innerHTML = `✅ <span class="text-neonGreen font-bold">NASA API CONNECTED:</span> Real Solar Flare <strong class="text-neonYellow">${fClass}</strong> (${fDate}) & OSDR Bio-Data Loaded`;
+                        }
+                        if (liveText) {
+                            liveText.innerHTML = `DONKI Flare: <strong class="text-neonYellow">${fClass}</strong> (${fDate})<br>RadLab ISS Baseline: <span class="text-neonBlue">0.62 mSv/day</span>`;
+                        }
+
+                        // Inject live NASA DONKI telemetry directly into the Solar Flare scenario
+                        const solarEv = AllScenarios.find(s => s.title.en === "Solar Flare");
+                        if (solarEv) {
+                            solarEv.desc.en = `[LIVE NASA DONKI DATA] A real ${fClass}-Class solar flare recorded on ${fDate} is impacting the hull!`;
+                            solarEv.desc.ar = `[بيانات ناسا الحية DONKI] توهج شمسي حقيقي من الفئة ${fClass} مسجل بتاريخ ${fDate} يضرب الغلاف الخارجي!`;
+                        }
+                        GameController.log(`[NASA_DONKI_API] Synced live solar flare ${fClass} from ${fDate}`);
+                        return;
+                    }
+                } catch (e) { /* Fallback below */ }
+
+                if (badge) badge.innerText = `📡 NASA RADLAB & OSDR: ACTIVE`;
+                if (bootStatus) bootStatus.innerHTML = `✅ <span class="text-neonBlue font-bold">NASA DATASETS READY:</span> DONKI, RadLab ISS Dosimetry, OSDR & CSA Toolkits Loaded`;
+                if (liveText) liveText.innerHTML = `RadLab ISS Dose: <strong class="text-neonBlue">0.62 mSv/day</strong><br>DONKI Solar Monitor: <span class="text-neonGreen">Nominal</span>`;
+            },
+
+            fetchOSDR: async () => {
+                const osdrText = document.getElementById('osdr-live-text');
+                try {
+                    const res = await fetch('https://osdr.nasa.gov/osdr/data/search?term=microgravity&size=1');
+                    const data = await res.json();
+                    const hit = data?.hits?.hits?.[0]?._source;
+                    if (hit) {
+                        const accession = hit.Accession || 'OSD-104';
+                        const title = (hit['Study Title'] || 'Spaceflight Microgravity & Crew Health').slice(0, 68) + '...';
+                        NASALiveEngine.osdrStudy = { accession, title };
+                        if (osdrText) {
+                            osdrText.innerHTML = `<strong class="text-neonBlue">${accession}:</strong> ${title}`;
+                        }
+                        GameController.log(`[NASA_OSDR_API] Loaded study ${accession}`);
+                        return;
+                    }
+                } catch (e) { /* Fallback below */ }
+
+                if (osdrText) {
+                    osdrText.innerHTML = `<strong class="text-neonBlue">OSD-104:</strong> Spaceflight bone, muscle & hydroponic fluid adaptation.`;
+                }
+            }
+        };
+
+        // --- Game State & Map Engine ---
+        const GameState = { 
+            lang: 'ar', mode: null, 
+            level: 1, maxLevels: 30, 
+            day: 1, maxDays: 5, 
+            res: { power: 100, life: 100, shield: 100, food: 100 }, 
+            currEvent: null, pool: [],
+            exportLogs: [], history: [],
+            emergencyUsed: false,
+            reserveActive: false,
+            trainingMult: 0.95
+        };
+
+        const QuizEngine = {
+            idx: 0, score: 0, list: [],
+            build: () => {
+                const l = GameState.lang, shuf = a => [...a].sort(() => Math.random() - 0.5);
+                const evs = [...new Set(GameState.history.map(h => h.ev).filter(ev => ev.nasa))];
+                return shuf(evs).slice(0, 7).map(ev => {
+                    const n = ev.nasa;
+                    const qObj = shuf(n.qs)[0];
+                    const o = shuf(qObj.o[l].map((x, i) => ({ x, ok: i === 0 })));
+                    return { q: qObj.q[l], opts: o.map(a => a.x), ans: o.findIndex(a => a.ok), explanation: `${n.f[l]} (${i18n[l].srcLbl}: <a class="text-neonBlue underline" href="${NASA_SRC[n.s][1]}" target="_blank">${NASA_SRC[n.s][0]}</a>)` };
+                });
+            },
+            start: () => {
+                QuizEngine.list = QuizEngine.build();
+                QuizEngine.idx = 0;
+                QuizEngine.score = 0;
+                const qm = document.getElementById('quiz-modal');
+                qm.style.opacity = '1'; qm.style.pointerEvents = 'auto';
+                QuizEngine.render();
+            },
+            render: () => {
+                if (QuizEngine.idx >= QuizEngine.list.length) {
+                    QuizEngine.finish();
+                    return;
+                }
+                const t = i18n[GameState.lang];
+                const item = QuizEngine.list[QuizEngine.idx];
+                
+                document.getElementById('quiz-score-badge').innerText = `SCORE: ${QuizEngine.score} / ${QuizEngine.list.length}`;
+                document.getElementById('quiz-progress').innerText = `QUESTION ${QuizEngine.idx + 1} / ${QuizEngine.list.length}`;
+                document.getElementById('quiz-progress-bars').innerHTML = QuizEngine.list.map((_, s) => `<div class="h-1.5 flex-1 rounded-full transition-all ${s < QuizEngine.idx ? 'bg-neonGreen' : s === QuizEngine.idx ? 'bg-neonBlue shadow-[0_0_8px_#00f3ff]' : 'bg-white/15'}"></div>`).join('');
+
+                const fbBox = document.getElementById('quiz-feedback-box');
+                fbBox.classList.add('hidden');
+
+                document.getElementById('quiz-question').innerText = item.q;
+                const container = document.getElementById('quiz-options');
+                container.innerHTML = '';
+                item.opts.forEach((opt, i) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'cyber-btn p-4 text-start font-arabic font-bold text-sm md:text-base text-white hover:border-neonBlue flex items-center gap-3 transition-all';
+                    btn.innerHTML = `<span class="w-6 h-6 rounded bg-neonBlue/20 border border-neonBlue/50 text-neonBlue font-orbitron text-xs flex items-center justify-center shrink-0">${i + 1}</span><span>${opt}</span>`;
+                    btn.onclick = () => QuizEngine.select(i, item);
+                    container.appendChild(btn);
+                });
+
+                document.getElementById('quiz-next-btn').innerText = (QuizEngine.idx === QuizEngine.list.length - 1) ? t.quizFinish : t.quizNext;
+            },
+            select: (chosen, item) => {
+                AudioEngine.click();
+                const btns = document.getElementById('quiz-options').querySelectorAll('button');
+                btns.forEach((b, idx) => {
+                    b.disabled = true;
+                    if (idx === item.ans) {
+                        b.style.borderColor = '#00ff66';
+                        b.style.background = 'rgba(0, 255, 102, 0.18)';
+                    } else if (idx === chosen && chosen !== item.ans) {
+                        b.style.borderColor = '#ff003c';
+                        b.style.background = 'rgba(255, 0, 60, 0.18)';
+                    }
+                });
+
+                const fbBox = document.getElementById('quiz-feedback-box');
+                const fbHeader = document.getElementById('quiz-feedback-header');
+                const fbExp = document.getElementById('quiz-explanation-text');
+                fbBox.classList.remove('hidden');
+
+                if (chosen === item.ans) {
+                    QuizEngine.score++;
+                    document.getElementById('quiz-score-badge').innerText = `SCORE: ${QuizEngine.score} / ${QuizEngine.list.length}`;
+                    fbBox.className = 'p-5 rounded-xl border border-neonGreen/60 bg-neonGreen/10 transition-all mb-4';
+                    fbHeader.className = 'font-arabic font-black text-base mb-1.5 text-neonGreen';
+                    fbHeader.innerText = GameState.lang === 'ar' ? '✔️ تحليل صحيح! إجابة هندسية دقيقة.' : '✔️ Verified! Accurate engineering analysis.';
+                    fbExp.innerHTML = item.explanation;
+                } else {
+                    fbBox.className = 'p-5 rounded-xl border border-neonRed/60 bg-neonRed/10 transition-all mb-4';
+                    fbHeader.className = 'font-arabic font-black text-base mb-1.5 text-neonRed';
+                    fbHeader.innerText = GameState.lang === 'ar' ? '❌ تحليل غير دقيق! إليك التفسير الهندسي:' : '❌ Inaccurate! Here is the engineering explanation:';
+                    fbExp.innerHTML = item.explanation;
+                }
+            },
+            next: () => {
+                AudioEngine.click();
+                QuizEngine.idx++;
+                QuizEngine.render();
+            },
+            finish: () => {
+                const qm = document.getElementById('quiz-modal');
+                qm.style.opacity = '0'; qm.style.pointerEvents = 'none';
+                const passed = QuizEngine.score >= Math.ceil(QuizEngine.list.length * 0.6);
+                GameController.log(`QUIZ SCORE: ${QuizEngine.score}/${QuizEngine.list.length} (${passed ? 'PASSED' : 'FAILED'})`);
+                if (passed) {
+                    GameController.end(true, "", false);
+                } else {
+                    GameController.end(false, "quiz", false);
+                }
+            }
+        };
+
+        const MapEngine = {
+            nodes: [],
+            generate: () => {
+                const w = window.innerWidth * 0.9 > 768 ? 768 : window.innerWidth * 0.9;
+                const h = window.innerHeight * 0.55;
+                const canvas = document.getElementById('map-canvas');
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                const container = document.getElementById('map-nodes-container');
+                container.innerHTML = ''; MapEngine.nodes = [];
+
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([8, 8]);
+
+                for (let i = 0; i < 30; i++) {
+                    const progress = i / 29; 
+                    const x = w * 0.15 + (Math.sin(progress * Math.PI * 5) * (w * 0.35)) + (w * 0.35);
+                    const y = h * 0.85 - (progress * h * 0.7);
+                    MapEngine.nodes.push({x, y});
+                    if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+
+                    const node = document.createElement('div');
+                    node.className = `map-node node-${i+1}`;
+                    node.style.left = `${x}px`; node.style.top = `${y}px`;
+                    if(i < GameState.level - 1) node.classList.add('cleared-node');
+                    else if(i === GameState.level - 1) node.classList.add('active-node');
+                    container.appendChild(node);
+                }
+                ctx.stroke();
+                MapEngine.placeRocket(GameState.level - 1, false);
+            },
+            placeRocket: (index, animate = false) => {
+                const r = document.getElementById('rocket-pawn');
+                const target = MapEngine.nodes[index];
+                if(!target) return;
+
+                if(animate && index > 0) {
+                    AudioEngine.rocket();
+                    r.classList.add('rocket-moving');
+                    const prev = MapEngine.nodes[index - 1];
+                    const angle = Math.atan2(target.y - prev.y, target.x - prev.x) * (180 / Math.PI) + 90; 
+                    r.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+                    setTimeout(() => { r.classList.remove('rocket-moving'); r.style.transform = `translate(-50%, -50%) rotate(0deg)`; }, 1500);
+                } else {
+                    r.style.transform = `translate(-50%, -50%) rotate(0deg)`;
+                }
+                r.style.left = `${target.x}px`;
+                r.style.top = `${target.y}px`;
+            }
+        };
+
+        const GameController = {
+            toggleSettings: () => { 
+                AudioEngine.click(); 
+                document.getElementById('settings-menu').classList.toggle('hidden');
+                const inGame = document.getElementById('boot-screen').style.display === 'none';
+                document.getElementById('menu-ingame-actions').style.display = inGame ? 'block' : 'none';
+            },
+            applyI18n: () => {
+                const t = i18n[GameState.lang];
+                document.getElementById('html-root').dir = GameState.lang === 'ar' ? 'rtl' : 'ltr';
+                document.getElementById('lang-btn-text').innerText = t.toggleBtn;
+                document.getElementById('boot-subtitle').innerText = t.bootSubtitle;
+                document.getElementById('btn-easy-title').innerText = t.btnEasy; document.getElementById('btn-easy-desc').innerText = t.btnEasyDesc;
+                document.getElementById('btn-hard-title').innerText = t.btnHard; document.getElementById('btn-hard-desc').innerText = t.btnHardDesc;
+                document.getElementById('btn-adv-title').innerText = t.btnAdv; document.getElementById('btn-adv-desc').innerText = t.btnAdvDesc;
+                document.getElementById('ui-cycle-level').innerText = t.uiCycleLvl;
+                ['Pwr', 'O2', 'Shld', 'Hyd'].forEach(k => document.getElementById(`res-${k.toLowerCase()}`).innerText = t[`res${k}`]);
+                ['c1', 'c2'].forEach(c => { document.getElementById(`${c}-pro-lbl`).innerText = t.adv; document.getElementById(`${c}-con-lbl`).innerText = t.dis; });
+                document.getElementById('ui-hint-title').innerText = t.hintTitle;
+                document.getElementById('map-title-txt').innerText = t.mapTitle;
+                document.getElementById('map-lvl-lbl').innerText = t.mapLvl;
+                document.getElementById('btn-start-adv-level').innerText = t.engage;
+                document.getElementById('modal-btn').innerText = t.btnMenu;
+                document.getElementById('modal-btn-retry').innerText = t.btnRetry;
+                document.getElementById('btn-surrender-text').innerText = t.btnSurrender;
+                document.getElementById('reserve-badge-txt').innerText = t.reserveActive;
+                document.getElementById('map-bonus-banner').innerText = t.mapBonusTxt;
+                document.getElementById('flip-hint-lbl').innerText = t.flipHint;
+                document.getElementById('card-front-title').innerText = t.cardFrontTitle;
+                document.getElementById('card-front-sub').innerText = t.cardFrontSub;
+                document.getElementById('lbl-complex').innerText = t.lblComplex;
+                document.getElementById('lbl-tradeoff').innerText = t.lblTradeoff;
+                document.getElementById('lbl-nasa').innerText = t.nasaLbl;
+                document.getElementById('dlog-title').innerText = t.dlogTitle;
+                document.getElementById('src-title').innerText = t.srcTitle;
+                document.getElementById('quiz-title').innerText = t.quizTitle;
+                document.getElementById('quiz-subtitle').innerText = t.quizSub;
+                GameController.updateEmergencyBtnUI();
+                if(GameState.mode) GameController.updateLevelDisplay();
+            },
+            toggleLanguage: () => {
+                AudioEngine.click(); GameState.lang = GameState.lang === 'ar' ? 'en' : 'ar';
+                GameController.applyI18n(); if(GameState.currEvent) GameController.renderEvent();
+                document.getElementById('settings-menu').classList.add('hidden');
+            },
+            initPool: () => {
+                GameState.pool = [...AllScenarios].sort(() => 0.5 - Math.random());
+            },
+            getDrainMultiplier: () => {
+                if (GameState.mode === 'training') return GameState.trainingMult;
+                if (GameState.mode === 'realistic') return 1.3;
+                if (GameState.mode === 'adventure') return Math.min(1.5, 1.0 + ((GameState.level - 1) * 0.025));
+                return 1.0;
+            },
+            updateEmergencyBtnUI: () => {
+                const t = i18n[GameState.lang];
+                const btn = document.getElementById('btn-emergency');
+                const txt = document.getElementById('emergency-btn-txt');
+                if (GameState.emergencyUsed) {
+                    btn.disabled = true;
+                    txt.innerText = t.emergencyUsed;
+                } else {
+                    btn.disabled = false;
+                    txt.innerText = t.emergencyReady;
+                }
+            },
+            updateReserveUI: () => {
+                const badge = document.getElementById('reserve-badge');
+                const mapBanner = document.getElementById('map-bonus-banner');
+                if (GameState.reserveActive) {
+                    badge.classList.remove('hidden');
+                    mapBanner.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                    mapBanner.classList.add('hidden');
+                }
+            },
+            boot: (mode) => {
+                AudioEngine.click(); GameState.mode = mode; GameState.day = 1; GameState.level = 1;
+                GameState.emergencyUsed = false; GameState.reserveActive = false;
+                if (mode === 'training') {
+                    GameState.trainingMult = Number((0.9 + Math.random() * 0.1).toFixed(2));
+                }
+                GameState.history = []; GameState.exportLogs = [`=== ASTRO-SYSTEMS TELEMETRY LOG (${mode.toUpperCase()}) ===`];
+                document.getElementById('sys-status').innerText = 'STATUS: ACTIVE_SIM';
+                document.getElementById('sys-status').className = 'text-[11px] font-bold text-neonGreen mb-1 drop-shadow-md';
+                document.getElementById('boot-screen').style.opacity = '0';
+                GameState.maxDays = (mode === 'training' || mode === 'realistic') ? 10 : 5;
+                GameController.updateEmergencyBtnUI();
+                GameController.updateReserveUI();
+                setTimeout(() => { 
+                    document.getElementById('boot-screen').style.display = 'none';
+                    document.getElementById('main-hud').style.opacity = '1'; 
+                    document.getElementById('main-hud').style.pointerEvents = 'auto'; 
+                    GameController.initPool(); 
+                    GameController.nextDay(); 
+                }, 700);
+            },
+            bootAdventure: () => {
+                AudioEngine.click(); GameState.mode = 'adventure'; GameState.level = 1;
+                GameState.emergencyUsed = false; GameState.reserveActive = false;
+                GameState.history = []; GameState.exportLogs = [`=== ASTRO-SYSTEMS TELEMETRY LOG (ADVENTURE) ===`];
+                document.getElementById('sys-status').innerText = 'STATUS: ADVENTURE_MODE';
+                document.getElementById('sys-status').className = 'text-[11px] font-bold text-neonPurple mb-1 drop-shadow-md';
+                document.getElementById('boot-screen').style.opacity = '0';
+                GameController.updateReserveUI();
+                setTimeout(() => {
+                    document.getElementById('boot-screen').style.display = 'none';
+                    document.getElementById('map-screen').style.display = 'flex';
+                    MapEngine.generate();
+                }, 700);
+            },
+            startAdventureLevel: () => {
+                AudioEngine.click();
+                document.getElementById('map-screen').style.opacity = '0';
+                GameState.res = { power: 100, life: 100, shield: 100, food: 100 };
+                GameState.day = 1; GameState.maxDays = 5;
+                GameState.emergencyUsed = false;
+                GameController.updateEmergencyBtnUI();
+                GameController.updateReserveUI();
+                GameController.log(`--- SECTOR ${GameState.level} STARTED (Drain: ${GameController.getDrainMultiplier().toFixed(2)}x${GameState.reserveActive ? ' | RESERVE BUFFER ACTIVE' : ''}) ---`);
+                GameController.initPool(); 
+                
+                setTimeout(() => {
+                    document.getElementById('map-screen').style.display = 'none';
+                    document.getElementById('map-screen').style.opacity = '1';
+                    document.getElementById('main-hud').style.opacity = '1'; 
+                    document.getElementById('main-hud').style.pointerEvents = 'auto';
+                    GameController.nextDay();
+                }, 500);
+            },
+            updateLevelDisplay: () => {
+                const t = i18n[GameState.lang];
+                document.getElementById('level-display').innerText = t.levelPrefix + GameState.level;
+                document.getElementById('day-display').innerText = t.dayPrefix + GameState.day;
+                document.getElementById('max-day-display').innerText = '/' + GameState.maxDays;
+                const multEl = document.getElementById('mult-indicator');
+                if (multEl) multEl.innerText = `${GameController.getDrainMultiplier().toFixed(2)}x`;
+            },
+            log: (msg) => { GameState.exportLogs.push(`[${new Date().toTimeString().substring(0,8)}] ${msg}`); },
+            useEmergencyOverride: () => {
+                if (GameState.emergencyUsed) return;
+                AudioEngine.override();
+                GameState.emergencyUsed = true;
+                GameController.updateEmergencyBtnUI();
+
+                let boostedAnyLow = false;
+                ['power', 'life', 'shield', 'food'].forEach(k => {
+                    if (GameState.res[k] < 50) {
+                        GameState.res[k] = Math.min(100, GameState.res[k] + 25);
+                        boostedAnyLow = true;
+                    }
+                });
+                if (!boostedAnyLow) {
+                    ['power', 'life', 'shield', 'food'].forEach(k => {
+                        GameState.res[k] = Math.min(100, GameState.res[k] + 15);
+                    });
+                }
+
+                GameController.log(`⚡ EMERGENCY OVERRIDE ACTIVATED! Systems stabilized.`);
+                GameController.renderBars();
+            },
+            flash: (k, dir) => {
+                const el = document.getElementById(`bar-${k}`).parentElement;
+                el.classList.remove('res-up', 'res-down'); void el.offsetWidth;
+                el.classList.add(dir > 0 ? 'res-up' : 'res-down');
+            },
+            renderDecisionLog: () => {
+                const l = GameState.lang, t = i18n[l], H = GameState.history;
+                const K = ['power', 'shield', 'life', 'food'], I = { power: '⚡', shield: '🛡️', life: '💨', food: '🌱' };
+                const RN = { power: 'resPwr', shield: 'resShld', life: 'resO2', food: 'resHyd' };
+                const lost = h => -K.reduce((a, k) => a + Math.min(0, h.d[k]), 0);
+                const tot = k => -H.reduce((a, h) => a + Math.min(0, h.d[k]), 0);
+                const worst = H.reduce((a, h) => lost(h) > lost(a) ? h : a, H[0]);
+                const top = K.reduce((a, k) => tot(k) > tot(a) ? k : a, K[0]);
+                const chip = (k, v) => v ? `<span class="${v < 0 ? 'text-neonRed' : 'text-neonGreen'}">${I[k]}${v > 0 ? '+' : ''}${v}</span>` : '';
+                document.getElementById('dlog-summary').innerText = H.length ? `${t.dlogWorst}: ${t.dayPrefix}${worst.day} ${worst.ev.title[l]} (-${lost(worst)}) | ${t.dlogTop}: ${t[RN[top]]} (-${tot(top)})` : '';
+                document.getElementById('dlog-body').innerHTML = H.map(h => `<div class="flex flex-wrap items-center gap-x-3 gap-y-1 py-1.5 px-1 border-b border-white/10 ${h === worst ? 'bg-neonRed/10' : ''}"><span class="font-orbitron text-neonBlue w-14 shrink-0">${t.levelPrefix}${h.lvl} ${t.dayPrefix}${h.day}</span><span class="font-arabic font-bold text-white flex-1 min-w-[150px]">${h.ev.title[l]} <span class="text-gray-400 font-normal">- ${h.choice[l]}</span></span><span class="font-mono flex gap-2">${K.map(k => chip(k, h.d[k])).join('')}</span></div>`).join('');
+                document.getElementById('dlog-src').innerHTML = Object.values(NASA_SRC).map(([n, u]) => `<li><a class="text-neonBlue underline" href="${u}" target="_blank" rel="noopener">${n}</a></li>`).join('');
+            },
+            renderBars: () => {
+                document.getElementById('hull-bar').style.width = Math.max(0, Math.min(100, GameState.res.shield)) + '%';
+                const units = {
+                    power: { sym: 'kW', max: 120 },
+                    life: { sym: 'kPa', max: 101.3 },
+                    shield: { sym: 'K', max: 295 },
+                    food: { sym: 'kg', max: 500 }
+                };
+                ['power', 'life', 'shield', 'food'].forEach(k => {
+                    let val = Math.max(0, Math.min(100, GameState.res[k]));
+                    let realVal = k === 'life' ? ((val / 100) * units[k].max).toFixed(1) : Math.round((val / 100) * units[k].max);
+                    document.getElementById(`val-${k}`).innerText = `${val}% (${realVal} ${units[k].sym})`;
+                    
+                    const bar = document.getElementById(`bar-${k}`);
+                    bar.innerHTML = '';
+                    let activeCount = Math.floor(val / 10);
+                    for(let i=0; i<10; i++) {
+                        let seg = document.createElement('div');
+                        seg.className = `segment ${i < activeCount ? 'active' : ''}`;
+                        if(val <= 30 && i < activeCount) seg.style.backgroundColor = '#ff003c'; 
+                        bar.appendChild(seg);
+                    }
+                });
+            },
+            isEventSurvivable: (eventObj) => {
+                const mult = GameController.getDrainMultiplier();
+                const effectiveMult = GameState.reserveActive ? mult * 0.5 : mult;
+                return eventObj.choices.some(choice => {
+                    const e = choice.effects;
+                    for (let k in e) {
+                        const delta = e[k] < 0 ? Math.round(e[k] * effectiveMult) : e[k];
+                        if (GameState.res[k] + delta <= 0) return false;
+                    }
+                    return true;
+                });
+            },
+            renderEvent: () => {
+                const e = GameState.currEvent; const l = GameState.lang;
+                if (!e) return; 
+
+                document.getElementById('event-title').innerText = e.title[l];
+                document.getElementById('event-desc').innerText = e.desc[l];
+
+                const flipCard = document.getElementById('nasa-flip-card');
+                if (flipCard) flipCard.classList.remove('flipped');
+                document.getElementById('card-complex-txt').innerText = e.complexSys[l];
+                document.getElementById('card-tradeoff-txt').innerText = e.tradeoff[l];
+                const nasa = e.nasa;
+                document.getElementById('card-nasa-txt').innerText = nasa ? nasa.f[l] : '';
+                document.getElementById('card-nasa-src').innerText = nasa ? `${i18n[l].srcLbl}: ${NASA_SRC[nasa.s][0]}` : '';
+                const evBox = document.getElementById('event-title').closest('.overflow-y-auto');
+                evBox.classList.remove('event-in'); void evBox.offsetWidth; evBox.classList.add('event-in');
+                
+                const hintContainer = document.getElementById('event-hint-container');
+                if (GameState.mode === 'training' && e.hint && e.hint[l]) { 
+                    document.getElementById('event-hint').innerText = e.hint[l]; 
+                    hintContainer.classList.remove('hidden'); 
+                } else { 
+                    hintContainer.classList.add('hidden'); 
+                }
+                
+                [0, 1].forEach(i => {
+                    document.getElementById(`choice-${i+1}-text`).innerText = e.choices[i].text[l];
+                    document.getElementById(`choice-${i+1}-pro`).innerText = e.choices[i].pro[l];
+                    document.getElementById(`choice-${i+1}-con`).innerText = e.choices[i].con[l];
+                });
+                GameController.log(`LVL ${GameState.level} DAY ${GameState.day} EVENT: ${e.title['en']}`);
+            },
+            nextDay: () => {
+                if (GameState.day > GameState.maxDays) return; 
+                if (GameState.mode === 'training') {
+                    GameState.trainingMult = Number((0.9 + Math.random() * 0.1).toFixed(2));
+                }
+                GameController.updateLevelDisplay();
+                if(!GameState.pool || GameState.pool.length === 0) GameController.initPool();
+                
+                let candidate = GameState.pool.pop();
+                if (!GameController.isEventSurvivable(candidate) && GameState.pool.length > 0) {
+                    const safeIdx = GameState.pool.findIndex(ev => GameController.isEventSurvivable(ev));
+                    if (safeIdx !== -1) {
+                        const safeEvent = GameState.pool.splice(safeIdx, 1)[0];
+                        GameState.pool.unshift(candidate);
+                        candidate = safeEvent;
+                        GameController.log(`[SYS_SAFETY] Rerouted unavoidable failure scenario.`);
+                    }
+                }
+
+                GameState.currEvent = candidate;
+                GameController.renderBars(); 
+                GameController.renderEvent();
+            },
+            makeChoice: (idx) => {
+                if (!GameState.currEvent) return; 
+
+                AudioEngine.click();
+                const ev = GameState.currEvent; GameState.currEvent = null;
+                const before = { ...GameState.res };
+                const choice = ev.choices[idx];
+                const e = choice.effects;
+                
+                let mult = GameController.getDrainMultiplier();
+                let hadNegative = Object.values(e).some(v => v < 0);
+
+                if (GameState.reserveActive && hadNegative) {
+                    mult *= 0.5;
+                    GameState.reserveActive = false;
+                    GameController.updateReserveUI();
+                    GameController.log(`🛡️ RESERVE BUFFER ABSORBED 50% OF SYSTEM DRAIN!`);
+                }
+                
+                for(let k in e) { 
+                    let delta;
+                    if (GameState.mode === 'training') {
+                        delta = Math.round(e[k] * mult);
+                    } else {
+                        delta = e[k] < 0 ? Math.round(e[k] * mult) : e[k];
+                    }
+                    GameState.res[k] = Math.min(100, GameState.res[k] + delta); 
+                }
+                
+                const dlt = {};
+                ['power', 'life', 'shield', 'food'].forEach(k => {
+                    dlt[k] = Math.max(0, GameState.res[k]) - before[k];
+                    if (dlt[k]) GameController.flash(k, dlt[k]);
+                });
+                GameState.history.push({ lvl: GameState.level, day: GameState.day, ev, choice: choice.text, d: dlt });
+                GameController.log(`CHOICE: "${choice.text['en']}" | PWR:${GameState.res.power}% O2:${GameState.res.life}% SHLD:${GameState.res.shield}% BIO:${GameState.res.food}%`); 
+                GameController.renderBars();
+                
+                let fail = ['power', 'life', 'shield', 'food'].find(k => GameState.res[k] <= 0);
+                if (fail) { 
+                    GameController.log(`CRITICAL FAILURE IN: ${fail.toUpperCase()}`);
+                    setTimeout(() => GameController.end(false, fail, GameState.mode === 'adventure'), 800); 
+                    return; 
+                } 
+
+                GameState.day++;
+                if (GameState.day > GameState.maxDays) {
+                    if (GameState.mode === 'adventure') {
+                        if (GameState.level >= GameState.maxLevels) {
+                            setTimeout(() => QuizEngine.start(), 800);
+                        } else {
+                            const highPerf = ['power', 'life', 'shield', 'food'].every(k => GameState.res[k] >= 60);
+                            GameState.reserveActive = highPerf;
+                            if (highPerf) {
+                                GameController.log(`⭐ HIGH EFFICIENCY BONUS: Reserve Shield earned for Sector ${GameState.level + 1}!`);
+                            }
+
+                            GameState.level++;
+                            GameController.updateReserveUI();
+                            document.getElementById('main-hud').style.opacity = '0';
+                            document.getElementById('main-hud').style.pointerEvents = 'none';
+                            setTimeout(() => {
+                                document.getElementById('map-level-display').innerText = GameState.level;
+                                document.getElementById('map-screen').style.display = 'flex';
+                                MapEngine.generate();
+                                MapEngine.placeRocket(GameState.level - 1, true); 
+                            }, 1000);
+                        }
+                    } else { 
+                        setTimeout(() => QuizEngine.start(), 800); 
+                    }
+                } else { setTimeout(GameController.nextDay, 500); }
+            },
+            end: (win, reason = "", allowRetry = false) => {
+                const m = document.getElementById('report-modal');
+                m.style.opacity = '1'; m.style.pointerEvents = 'auto';
+                const t = i18n[GameState.lang];
+                let title = document.getElementById('modal-title');
+                const retryBtn = document.getElementById('modal-btn-retry');
+                const tipTxt = document.getElementById('modal-tip');
+                GameController.renderDecisionLog();
+                
+                if (allowRetry && !win) retryBtn.classList.remove('hidden'); else retryBtn.classList.add('hidden');
+
+                if (win) {
+                    AudioEngine.win(); title.innerText = t.winTitle; title.className = "text-5xl font-orbitron font-black mb-3 text-neonGreen mt-4 drop-shadow-lg";
+                    document.getElementById('report-border').className = "tech-panel p-10 max-w-3xl w-full max-h-[92vh] overflow-y-auto text-center border-t-4 border-neonGreen shadow-[0_20px_50px_rgba(0,255,102,0.2)]";
+                    document.getElementById('modal-desc').innerText = t.winDesc;
+                    tipTxt.innerText = t.tips.win;
+                    GameController.log(`MISSION ACCOMPLISHED.`);
+                } else {
+                    AudioEngine.lose(); title.innerText = t.loseTitle; title.className = "text-5xl font-orbitron font-black mb-3 text-neonRed mt-4 drop-shadow-lg";
+                    document.getElementById('report-border').className = "tech-panel p-10 max-w-3xl w-full max-h-[92vh] overflow-y-auto text-center border-t-4 border-neonRed shadow-[0_20px_50px_rgba(255,0,60,0.2)]";
+                    
+                    if (reason === "quiz") {
+                        document.getElementById('modal-desc').innerText = GameState.lang === 'ar' ? "عدم اجتياز تقييم الفهم الهندسي" : "Failed Engineering Comprehension Quiz";
+                        tipTxt.innerText = t.quizFailTip;
+                    } else {
+                        let resName = t[`res${reason.charAt(0).toUpperCase() + reason.slice(1).replace('food','Hyd').replace('life','O2').replace('power','Pwr').replace('shield','Shld')}`] || reason;
+                        document.getElementById('modal-desc').innerText = t.loseDesc + resName;
+                        tipTxt.innerText = t.tips[reason] || "";
+                    }
+                }
+            },
+            retryLevel: () => {
+                AudioEngine.click();
+                const m = document.getElementById('report-modal');
+                m.style.opacity = '0'; m.style.pointerEvents = 'none';
+                GameState.res = { power: 100, life: 100, shield: 100, food: 100 };
+                GameState.day = 1;
+                GameState.emergencyUsed = false;
+                GameState.reserveActive = false;
+                GameController.updateEmergencyBtnUI();
+                GameController.updateReserveUI();
+                GameController.log(`--- RETRYING SECTOR ${GameState.level} ---`);
+                GameController.initPool();
+                setTimeout(() => { GameController.nextDay(); }, 500);
+            },
+            handleReportClick: () => { location.reload(); }
+        };
+
+        GameController.applyI18n();
+        NASALiveEngine.init();
+        window.addEventListener('resize', () => { if(GameState.mode === 'adventure' && document.getElementById('map-screen').style.display === 'flex') MapEngine.generate(); });
+    </script>
+</body>
+</html>
