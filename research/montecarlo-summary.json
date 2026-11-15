@@ -1,0 +1,111 @@
+{
+  "missions": 5000,
+  "version": "v7",
+  "date": "2026-11-15T10:27:10.225Z",
+  "results": [
+    {
+      "mode": "training",
+      "profile": "leo",
+      "bot": "random",
+      "survival": 38.3,
+      "fail_power": 18.3,
+      "fail_prot": 9.6,
+      "fail_air": 20.1,
+      "fail_bio": 12.5,
+      "fail_crew": 1.3,
+      "meanDose_mSv": 16.6,
+      "medCases": 4.2
+    },
+    {
+      "mode": "training",
+      "profile": "leo",
+      "bot": "systems",
+      "survival": 99.7,
+      "fail_power": 0.1,
+      "fail_prot": 0,
+      "fail_air": 0.2,
+      "fail_bio": 0,
+      "fail_crew": 0,
+      "meanDose_mSv": 26.9,
+      "medCases": 4.62
+    },
+    {
+      "mode": "realistic",
+      "profile": "leo",
+      "bot": "random",
+      "survival": 8.3,
+      "fail_power": 35.1,
+      "fail_prot": 12.2,
+      "fail_air": 23.1,
+      "fail_bio": 20.5,
+      "fail_crew": 0.9,
+      "meanDose_mSv": 14.6,
+      "medCases": 4.33
+    },
+    {
+      "mode": "realistic",
+      "profile": "leo",
+      "bot": "systems",
+      "survival": 96.7,
+      "fail_power": 1.7,
+      "fail_prot": 0,
+      "fail_air": 1,
+      "fail_bio": 0.6,
+      "fail_crew": 0,
+      "meanDose_mSv": 27.2,
+      "medCases": 5.41
+    },
+    {
+      "mode": "realistic",
+      "profile": "cislunar",
+      "bot": "random",
+      "survival": 11.8,
+      "fail_power": 29.7,
+      "fail_prot": 11.7,
+      "fail_air": 27.8,
+      "fail_bio": 17.9,
+      "fail_crew": 1.1,
+      "meanDose_mSv": 36.1,
+      "medCases": 4.47
+    },
+    {
+      "mode": "realistic",
+      "profile": "cislunar",
+      "bot": "systems",
+      "survival": 99.5,
+      "fail_power": 0.1,
+      "fail_prot": 0,
+      "fail_air": 0.3,
+      "fail_bio": 0,
+      "fail_crew": 0,
+      "meanDose_mSv": 61,
+      "medCases": 5.49
+    },
+    {
+      "mode": "realistic",
+      "profile": "moon",
+      "bot": "random",
+      "survival": 7.8,
+      "fail_power": 42.8,
+      "fail_prot": 4.7,
+      "fail_air": 35.7,
+      "fail_bio": 8.3,
+      "fail_crew": 0.7,
+      "meanDose_mSv": 23.2,
+      "medCases": 4.41
+    },
+    {
+      "mode": "realistic",
+      "profile": "moon",
+      "bot": "systems",
+      "survival": 94.6,
+      "fail_power": 3.1,
+      "fail_prot": 0.2,
+      "fail_air": 2.1,
+      "fail_bio": 0.1,
+      "fail_crew": 0,
+      "meanDose_mSv": 42.1,
+      "medCases": 5.32
+    }
+  ]
+}

@@ -1,0 +1,169 @@
+{
+  "features": [
+    "day",
+    "power",
+    "prot",
+    "air",
+    "bio",
+    "min_sys",
+    "n_low",
+    "crew_mean",
+    "crew_min",
+    "conditions",
+    "pending_neg",
+    "kit_left",
+    "dose_mean",
+    "couplings_active",
+    "profile_cislunar",
+    "profile_moon",
+    "realistic"
+  ],
+  "n_train_rows": 51351,
+  "n_test_rows": 17100,
+  "n_train_missions": 6000,
+  "n_test_missions": 2000,
+  "test_base_rate_survived": 0.588,
+  "baseline_majority": {
+    "accuracy": 0.588,
+    "auc": 0.5
+  },
+  "baseline_weakest_system_only": {
+    "auc": 0.601,
+    "accuracy": 0.641,
+    "brier": 0.233
+  },
+  "logistic_cv_auc_mean": 0.861,
+  "logistic_cv_auc_sd": 0.004,
+  "logistic_test": {
+    "auc": 0.863,
+    "accuracy": 0.783,
+    "brier": 0.148
+  },
+  "boosting_test": {
+    "auc": 0.87,
+    "accuracy": 0.791,
+    "brier": 0.143
+  },
+  "by_day": {
+    "days_1-3": {
+      "logistic_auc": 0.759,
+      "boosting_auc": 0.769,
+      "weakest_only_auc": 0.62
+    },
+    "days_4-6": {
+      "logistic_auc": 0.877,
+      "boosting_auc": 0.877,
+      "weakest_only_auc": 0.773
+    },
+    "days_7-9": {
+      "logistic_auc": 0.934,
+      "boosting_auc": 0.943,
+      "weakest_only_auc": 0.845
+    }
+  },
+  "day5_warning": {
+    "missions": 1994,
+    "failure_recall": 0.708,
+    "failure_precision": 0.814
+  },
+  "calibration_logistic": [
+    {
+      "bin": "0.0-0.1",
+      "predicted": 0.048,
+      "observed": 0.035,
+      "n": 1472
+    },
+    {
+      "bin": "0.1-0.2",
+      "predicted": 0.15,
+      "observed": 0.147,
+      "n": 1243
+    },
+    {
+      "bin": "0.2-0.3",
+      "predicted": 0.249,
+      "observed": 0.258,
+      "n": 1210
+    },
+    {
+      "bin": "0.3-0.4",
+      "predicted": 0.35,
+      "observed": 0.363,
+      "n": 1135
+    },
+    {
+      "bin": "0.4-0.5",
+      "predicted": 0.449,
+      "observed": 0.425,
+      "n": 1271
+    },
+    {
+      "bin": "0.5-0.6",
+      "predicted": 0.55,
+      "observed": 0.559,
+      "n": 1442
+    },
+    {
+      "bin": "0.6-0.7",
+      "predicted": 0.652,
+      "observed": 0.646,
+      "n": 1411
+    },
+    {
+      "bin": "0.7-0.8",
+      "predicted": 0.748,
+      "observed": 0.724,
+      "n": 2046
+    },
+    {
+      "bin": "0.8-0.9",
+      "predicted": 0.854,
+      "observed": 0.837,
+      "n": 2275
+    },
+    {
+      "bin": "0.9-1.0",
+      "predicted": 0.957,
+      "observed": 0.963,
+      "n": 3595
+    }
+  ],
+  "logistic_standardized_coefficients": {
+    "day": 4.002,
+    "min_sys": 1.473,
+    "power": 1.066,
+    "bio": 0.928,
+    "realistic": -0.728,
+    "air": 0.717,
+    "prot": 0.522,
+    "pending_neg": 0.498,
+    "kit_left": -0.34,
+    "crew_min": 0.277,
+    "crew_mean": -0.217,
+    "conditions": -0.217,
+    "dose_mean": 0.175,
+    "couplings_active": 0.106,
+    "profile_moon": -0.046,
+    "n_low": 0.034,
+    "profile_cislunar": 0.021
+  },
+  "boosting_permutation_importance_auc_drop": {
+    "day": 0.2548,
+    "min_sys": 0.1589,
+    "power": 0.0605,
+    "bio": 0.0301,
+    "pending_neg": 0.027,
+    "air": 0.0158,
+    "kit_left": 0.0109,
+    "crew_min": 0.0098,
+    "dose_mean": 0.0068,
+    "prot": 0.0063,
+    "conditions": 0.0055,
+    "n_low": 0.0018,
+    "couplings_active": 0.0015,
+    "crew_mean": 0.0005,
+    "profile_moon": 0.0002,
+    "realistic": 0.0002,
+    "profile_cislunar": -0.0
+  }
+}

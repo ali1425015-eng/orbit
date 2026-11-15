@@ -1,0 +1,43 @@
+/* ===== Animations & feedback effects ===== */
+@keyframes pulse { 50% { opacity: .55; } }
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes bob { 50% { transform: translateY(-6px); } }
+@keyframes glow { 50% { box-shadow: 0 0 26px rgba(63,208,255,.4); } }
+@keyframes flow { to { stroke-dashoffset: -22; } }
+@keyframes ripple { to { transform: scale(4); opacity: 0; } }
+@keyframes floatUp { 0% { opacity: 0; transform: translateY(6px); } 15% { opacity: 1; } 100% { opacity: 0; transform: translateY(-34px); } }
+@keyframes toastIn { from { opacity: 0; transform: translateY(12px); } }
+@keyframes toastOut { to { opacity: 0; transform: translateX(30px); } }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes popIn { from { opacity: 0; transform: scale(.94) translateY(10px); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } }
+@keyframes rise { from { transform: translateY(18px); opacity: 0; } }
+@keyframes critPulse { 50% { box-shadow: 0 0 0 2px rgba(255,77,109,.6), 0 0 22px rgba(255,77,109,.4); } }
+@keyframes shake { 10%, 90% { transform: translate(-2px, 0); } 20%, 80% { transform: translate(4px, 1px); } 30%, 50%, 70% { transform: translate(-6px, -1px); } 40%, 60% { transform: translate(6px, 1px); } }
+@keyframes flashRed { 0% { opacity: .55; } 100% { opacity: 0; } }
+@keyframes flashGreen { 0% { opacity: .35; } 100% { opacity: 0; } }
+@keyframes evIn { from { opacity: 0; transform: translateY(14px); filter: blur(4px); } }
+@keyframes sweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+.shake { animation: shake .5s; }
+.ev-in { animation: evIn .5s ease-out; }
+#flash { position: fixed; inset: 0; z-index: 95; pointer-events: none; opacity: 0; }
+#flash.red { background: radial-gradient(circle, transparent 40%, rgba(255,40,70,.6)); animation: flashRed .7s ease-out; }
+#flash.green { background: radial-gradient(circle, transparent 40%, rgba(61,255,143,.45)); animation: flashGreen .8s ease-out; }
+/* permanent red vignette while any system is critical */
+#vignette { position: fixed; inset: 0; z-index: 94; pointer-events: none; opacity: 0; transition: opacity .6s; box-shadow: inset 0 0 160px rgba(255,30,60,.55); }
+#vignette.on { opacity: 1; animation: pulse 1.6s infinite; }
+
+/* day transition */
+#daywipe { position: fixed; inset: 0; z-index: 110; pointer-events: none; display: grid; place-items: center; opacity: 0; background: radial-gradient(circle at 50% 120%, rgba(255,180,60,.35), rgba(4,6,13,.96) 60%); transition: opacity .4s; }
+#daywipe.on { opacity: 1; }
+#daywipe .d { font-family: var(--font-num); font-size: clamp(2rem, 6vw, 4rem); font-weight: 900; letter-spacing: .2em; }
+#daywipe .s { color: var(--mut); text-align: center; margin-top: 8px; }
+#daywipe .scan { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(63,208,255,.18), transparent); animation: sweep 1.2s ease-in-out; }
+
+/* particles (confetti / sparks) */
+#fx { position: fixed; inset: 0; z-index: 130; pointer-events: none; }
+
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; transition-duration: .001s !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; } }

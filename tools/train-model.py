@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+"""Train and evaluate the AI Flight Director (mission-survival predictor).
+
+Input : research/ml-train.csv, research/ml-test.csv  (made by tools/ml-dataset.js)
+Output: research/ml-results.json   (all metrics)
+        js/core/ai-model.js         (the logistic model, embedded in the app)
+Models: logistic regression (small, explainable, runs in the browser),
+        gradient-boosted trees (stronger, used as a comparison), and two simple baselines.
+Usage : python3 tools/train-model.py
+"""
+import json, os, sys
+import numpy as np, pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.model_selection import GroupKFold
+from sklearn.metrics import roc_auc_score, accuracy_score, brier_score_loss, precision_score, recall_score
+from sklearn.inspection import permutation_importance
+
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+tr = pd.read_csv(os.path.join(ROOT, 'research', 'ml-train.csv'))
+te = pd.read_csv(os.path.join(ROOT, 'research', 'ml-test.csv'))
+DROP = ['mission_seed', 'eps_hidden', 'survived', 'days_left']   # eps is the hidden skill level: never shown to the model
+FEATS = [c for c in tr.columns if c not in DROP]
+Xtr, ytr, gtr = tr[FEATS].values, tr['survived'].values, tr['mission_seed'].values
+Xte, yte = te[FEATS].values, te['survived'].values
+
+def metrics(p, y):
+    return {'auc': round(roc_auc_score(y, p), 3), 'accuracy': round(accuracy_score(y, p >= 0.5), 3),
+            'brier': round(brier_score_loss(y, p), 3)}
+
+res = {'features': FEATS, 'n_train_rows': int(len(tr)), 'n_test_rows': int(len(te)),
+       'n_train_missions': int(tr.mission_seed.nunique()), 'n_test_missions': int(te.mission_seed.nunique()),
+       'test_base_rate_survived': round(float(yte.mean()), 3)}
+
+# --- baselines ---
+res['baseline_majority'] = {'accuracy': round(float(max(yte.mean(), 1 - yte.mean())), 3), 'auc': 0.5}
+i_min = FEATS.index('min_sys')
+b = LogisticRegression(max_iter=1000).fit(Xtr[:, [i_min]], ytr)
+res['baseline_weakest_system_only'] = metrics(b.predict_proba(Xte[:, [i_min]])[:, 1], yte)
+
+# --- logistic regression (5-fold cross-validation by mission, then final fit) ---
+lr = make_pipeline(StandardScaler(), LogisticRegression(max_iter=2000, C=1.0))
+cv = []
+for a, bidx in GroupKFold(n_splits=5).split(Xtr, ytr, gtr):
+    lr.fit(Xtr[a], ytr[a]); cv.append(roc_auc_score(ytr[bidx], lr.predict_proba(Xtr[bidx])[:, 1]))
+res['logistic_cv_auc_mean'] = round(float(np.mean(cv)), 3); res['logistic_cv_auc_sd'] = round(float(np.std(cv)), 3)
+lr.fit(Xtr, ytr)
+p_lr = lr.predict_proba(Xte)[:, 1]
+res['logistic_test'] = metrics(p_lr, yte)
+
+# --- gradient boosting ---
+gb = HistGradientBoostingClassifier(max_iter=300, learning_rate=0.08, max_leaf_nodes=31, random_state=0).fit(Xtr, ytr)
+p_gb = gb.predict_proba(Xte)[:, 1]
+res['boosting_test'] = metrics(p_gb, yte)
+
+# --- early warning: how well does it predict by mission day? ---
+byday = {}
+for lo, hi in [(1, 3), (4, 6), (7, 9)]:
+    m = (te.day >= lo) & (te.day <= hi)
+    byday[f'days_{lo}-{hi}'] = {'logistic_auc': round(roc_auc_score(yte[m], p_lr[m]), 3),
+                                'boosting_auc': round(roc_auc_score(yte[m], p_gb[m]), 3),
+                                'weakest_only_auc': round(roc_auc_score(yte[m], b.predict_proba(Xte[m][:, [i_min]])[:, 1]), 3)}
+res['by_day'] = byday
+m5 = te.day == 5
+warn = p_lr[m5] < 0.5
+res['day5_warning'] = {'missions': int(m5.sum()), 'failure_recall': round(recall_score(1 - yte[m5], warn), 3),
+                       'failure_precision': round(precision_score(1 - yte[m5], warn), 3)}
+
+# --- calibration (10 bins) ---
+bins = np.linspace(0, 1, 11); cal = []
+for i in range(10):
+    m = (p_lr >= bins[i]) & (p_lr < bins[i + 1] if i < 9 else p_lr <= 1)
+    if m.sum() >= 30: cal.append({'bin': f'{bins[i]:.1f}-{bins[i+1]:.1f}', 'predicted': round(float(p_lr[m].mean()), 3), 'observed': round(float(yte[m].mean()), 3), 'n': int(m.sum())})
+res['calibration_logistic'] = cal
+
+# --- what does the model look at? ---
+sc, clf = lr.named_steps['standardscaler'], lr.named_steps['logisticregression']
+std = {f: round(float(c), 3) for f, c in zip(FEATS, clf.coef_[0])}
+res['logistic_standardized_coefficients'] = dict(sorted(std.items(), key=lambda t: -abs(t[1])))
+rng = np.random.RandomState(0); idx = rng.choice(len(Xte), size=min(6000, len(Xte)), replace=False)
+pi = permutation_importance(gb, Xte[idx], yte[idx], scoring='roc_auc', n_repeats=5, random_state=0)
+res['boosting_permutation_importance_auc_drop'] = dict(sorted({f: round(float(v), 4) for f, v in zip(FEATS, pi.importances_mean)}.items(), key=lambda t: -t[1]))
+
+# --- export the logistic model in raw units for the browser ---
+w = clf.coef_[0] / sc.scale_
+b0 = clf.intercept_[0] - np.sum(clf.coef_[0] * sc.mean_ / sc.scale_)
+js = """/* AI FLIGHT DIRECTOR — generated by tools/train-model.py (do not edit by hand).
+   Logistic-regression model trained on %d station snapshots from %d simulated missions of mixed skill;
+   tested on %d snapshots from %d different missions (test AUC %.3f, accuracy %.1f%%).
+   p(survive) = 1 / (1 + exp(-(b + Σ w·x))). Features are read from the live state by OT.AI.features(). */
+(function (OT) {
+  'use strict';
+  OT.AI = OT.AI || {};
+  OT.AI.model = %s;
+})(window.OT);
+""" % (len(tr), res['n_train_missions'], len(te), res['n_test_missions'], res['logistic_test']['auc'], 100 * res['logistic_test']['accuracy'],
+       json.dumps({'intercept': round(float(b0), 6), 'weights': {f: round(float(x), 6) for f, x in zip(FEATS, w)},
+                   'mean': {f: round(float(x), 4) for f, x in zip(FEATS, sc.mean_)},
+                   'test_auc': res['logistic_test']['auc'], 'test_accuracy': res['logistic_test']['accuracy'],
+                   'train_missions': res['n_train_missions'], 'test_missions': res['n_test_missions']}, indent=2))
+open(os.path.join(ROOT, 'js', 'core', 'ai-model.js'), 'w').write(js)
+json.dump(res, open(os.path.join(ROOT, 'research', 'ml-results.json'), 'w'), indent=2)
+print(json.dumps(res, indent=2))

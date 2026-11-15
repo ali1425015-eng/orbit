@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ORBITAL TRADE-OFFS — Coupled-Systems & Space Medicine Simulator</title>
+  <meta name="description" content="A browser-based simulator for learning engineering trade-offs, closed-loop life support and space medicine.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛰️</text></svg>">
+  <!-- Fonts load when online; system fonts are used offline -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Space+Grotesk:wght@400;600;700&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/hud.css">
+  <link rel="stylesheet" href="css/screens.css">
+  <link rel="stylesheet" href="css/effects.css">
+</head>
+<body>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <div id="crt" aria-hidden="true"></div>
+  <div id="vignette" aria-hidden="true"></div>
+  <div id="flash" aria-hidden="true"></div>
+  <div id="daywipe" aria-hidden="true"><div class="scan"></div><div><div class="d" id="dw-d"></div><div class="s" id="dw-s"></div></div></div>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div id="toasts" aria-live="polite"></div>
+  <div class="tipbox" id="tip" role="tooltip"></div>
+
+  <!-- ===== BOOT / MAIN MENU ===== -->
+  <section id="boot" class="screen"></section>
+
+  <!-- ===== EXPEDITION MAP ===== -->
+  <section id="map" class="screen hidden"></section>
+
+  <!-- ===== GAME HUD ===== -->
+  <main id="game" class="hidden" aria-live="polite">
+    <header class="panel topbar">
+      <div class="brand">ORBITAL<b>·</b>TRADE-OFFS</div>
+      <div class="mission-meta" id="meta"></div>
+      <div class="daydots" id="daydots" aria-label="mission progress"></div>
+      <div class="cabin" id="cabin"></div>
+      <div class="top-actions">
+        <button class="btn sm warn" id="btn-emergency"></button>
+        <button class="btn icon" id="btn-handbook" data-tip-k="handbook" aria-label="handbook">📖</button>
+        <button class="btn icon" id="btn-export" data-tip-k="exportCsv" aria-label="export">📥</button>
+        <button class="btn icon" id="btn-settings" data-tip-k="settings" aria-label="settings">⚙️</button>
+      </div>
+    </header>
+
+    <section class="resources" id="resources"></section>
+
+    <section class="main">
+      <div class="col">
+        <div class="panel ai-panel" id="ai-panel"><div class="panel-h"><span>🤖 <span data-i="aiTitle"></span></span><span class="tag" id="ai-tag">AI ⓘ</span></div><div class="panel-b" id="ai"></div></div>
+        <div class="panel" id="crew-panel"><div class="panel-h"><span data-i="crewPanel"></span><span class="tag" id="crew-dose-avg"></span></div><div class="panel-b" id="crew"></div></div>
+        <div class="panel"><div class="panel-h"><span data-i="medkit"></span><span>💊</span></div><div class="panel-b"><div class="kitgrid" id="kit"></div></div></div>
+      </div>
+
+      <div class="col center">
+        <div class="panel terminal" id="terminal">
+          <div class="panel-h"><span id="term-h" data-i="incoming"></span><span class="tag" id="term-cat"></span></div>
+          <div class="panel-b">
+            <div class="ev-head">
+              <div class="ev-icon" id="ev-icon">📡</div>
+              <div class="grow"><h2 class="ev-title" id="ev-title">—</h2><div class="ev-meta" id="ev-meta"></div></div>
+              <div class="timer hidden" id="timer"><svg width="54" height="54"><circle cx="27" cy="27" r="23" stroke="rgba(255,255,255,.1)" stroke-width="5" fill="none"/><circle id="timer-arc" cx="27" cy="27" r="23" stroke="#3fd0ff" stroke-width="5" fill="none" stroke-linecap="round" stroke-dasharray="144.5" stroke-dashoffset="0"/></svg><div class="t" id="timer-t">60</div></div>
+            </div>
+            <p class="ev-desc" id="ev-desc"></p>
+            <div class="hintbox hidden" id="hintbox"></div>
+            <div class="row wrap"><button class="btn sm" id="btn-hint">💡 <span data-i="hint"></span></button><span class="tiny dim" id="kbd-help"></span></div>
+            <div class="choices" id="choices"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="panel"><div class="panel-h"><span data-i="science"></span><span class="tag">F</span></div>
+          <div class="panel-b"><div class="flip" id="flip" tabindex="0" role="button">
+            <div class="flip-in"><div class="flip-f"><div><div class="big">🔬</div><b id="flip-front-t"></b><div class="small muted" id="flip-front-s"></div></div></div>
+              <div class="flip-b" id="flip-back"></div></div></div></div></div>
+        <div class="panel cmap"><div class="panel-h"><span data-i="couplingMap"></span><span class="tag">🔗</span></div><div class="panel-b" id="cmap"></div></div>
+        <div class="panel"><div class="panel-h"><span data-i="log"></span></div><div class="panel-b log" id="log"></div></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="modal-root"></div>
+  <div id="tut" class="hidden"><div class="hole"></div><div class="card"></div></div>
+
+  <!-- Core -->
+  <script src="js/core/namespace.js"></script>
+  <script src="js/core/rng.js"></script>
+  <!-- Data (multi-source, every number points to js/data/sources.js) -->
+  <script src="js/data/sources.js"></script>
+  <script src="js/data/systems.js"></script>
+  <script src="js/data/scenarios-station.js"></script>
+  <script src="js/data/scenarios-lunar.js"></script>
+  <script src="js/data/medical-cases.js"></script>
+  <script src="js/data/assessment.js"></script>
+  <!-- Engine & services -->
+  <script src="js/core/i18n.js"></script>
+  <script src="js/core/engine.js"></script>
+  <script src="js/core/ai.js"></script>
+  <script src="js/core/ai-model.js"></script>
+  <script src="js/core/telemetry.js"></script>
+  <!-- UI -->
+  <script src="js/ui/audio.js"></script>
+  <script src="js/ui/fx.js"></script>
+  <script src="js/ui/hud.js"></script>
+  <script src="js/ui/event.js"></script>
+  <script src="js/ui/medbay.js"></script>
+  <script src="js/ui/screens.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
